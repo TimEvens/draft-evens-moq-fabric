@@ -392,7 +392,23 @@ Namespace tuples and track names are opaque octet strings, in the same order {{M
 
 The hash function is CityHash64 {{CITYHASH}} over the octet string. An empty string hashes as CityHash64 of zero octets.
 
-The namespace hash is CityHash64 of the concatenation of the tuple octets, with no separator between tuples. The name hash is CityHash64 of the track-name octets. The full-name hash combines those two values, starting from zero:
+The namespace hash is computed one tuple at a time, in tuple order. An empty namespace hashes as CityHash64 of zero octets. The hash of the first tuple is CityHash64 of that tuple's octets, so a namespace of one tuple has the same hash as that tuple. Each following tuple updates the hash. The previous hash is encoded as 8 octets in network byte order and placed before the next tuple's octets, and CityHash64 of that sequence replaces the hash:
+
+~~~
+namespace_hash(tuples):
+    if tuples is empty:
+        return CityHash64 of zero octets
+    h = CityHash64 of the first tuple
+    for each following tuple:
+        h = CityHash64 of (h as 8 octets, most significant octet first,
+                           followed by the tuple octets)
+    return h
+~~~
+{: title="Namespace hash" }
+
+Each tuple stays on its own boundary. The hash of ("a", "bc") differs from the hash of ("ab", "c"), and the hash of ("a", "b") differs from the hash of ("b", "a").
+
+The name hash is CityHash64 of the track-name octets. The full-name hash combines those two values, starting from zero:
 
 ~~~
 hash_combine(seed, value):
@@ -405,7 +421,7 @@ hash_combine(full_name_hash, name_hash)
 ~~~
 {: title="Full-name hash" }
 
-Prefix matching uses the CityHash64 of each tuple, compared in order. A namespace A is a prefix of namespace B when A has no more tuples than B and each tuple hash of A equals the tuple hash of B at the same index.
+Prefix matching compares the CityHash64 of each tuple by itself, in order. The chained namespace hash is the namespace input to the full-name hash. A namespace A is a prefix of namespace B when A has no more tuples than B and each tuple hash of A equals the tuple hash of B at the same index.
 
 CityHash64 has a 64-bit output, so distinct names can share a hash. Recomputing a hash from the octets in the same message and comparing it with the hash field detects a malformed message. Two different names that produce one hash stay one forwarding key.
 
@@ -744,7 +760,7 @@ Bit 0 of Flags selects the kind. Zero is a single track. One is a namespace. All
 
 A track announcement uses Name Octets as the track name. Name Length MAY be zero, and the announcement is still a track. A namespace announcement covers the tracks in the namespace given by the tuples. Its Name Length MUST be zero, and Name Octets MUST be empty. A namespace announcement with a non-zero Name Length is a malformed message.
 
-The receiver MUST recompute the full-name hash from Track Name and MUST treat a mismatch with Full Name Hash as a malformed message. The namespace hash is CityHash64 of the concatenated tuple octets. The name hash is CityHash64 of Name Octets, which is the hash of zero octets when Name Length is zero. The full-name hash combines those two values as in {{names}}. The same check applies to a track announcement, a namespace announcement, an advertisement, and a withdrawal.
+The receiver MUST recompute the full-name hash from Track Name and MUST treat a mismatch with Full Name Hash as a malformed message. The namespace hash and the name hash are the values defined in {{names}}. The name hash is CityHash64 of Name Octets, which is the hash of zero octets when Name Length is zero. The same check applies to a track announcement, a namespace announcement, an advertisement, and a withdrawal.
 
 ## Subscriber Node Set
 
