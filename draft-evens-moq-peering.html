@@ -1030,7 +1030,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Evens</td>
-<td class="center">Expires 9 May 2027</td>
+<td class="center">Expires 20 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1043,12 +1043,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-evens-moq-peering-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-11-05" class="published">5 November 2026</time>
+<time datetime="2026-11-16" class="published">16 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-05-09">9 May 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-20">20 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1098,7 +1098,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 9 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 20 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1989,9 +1989,27 @@ Publisher --&gt; Origin Edge --&gt; Via --&gt; Subscriber Edge --&gt; Subscriber
       </h2>
 <p id="section-6-1">Namespace tuples and track names are opaque octet strings, in the same order <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> uses. Relays hash them so that forwarding state and object headers stay fixed size.<a href="#section-6-1" class="pilcrow">¶</a></p>
 <p id="section-6-2">The hash function is CityHash64 <span>[<a href="#CITYHASH" class="cite xref">CITYHASH</a>]</span> over the octet string. An empty string hashes as CityHash64 of zero octets.<a href="#section-6-2" class="pilcrow">¶</a></p>
-<p id="section-6-3">The namespace hash is CityHash64 of the concatenation of the tuple octets, with no separator between tuples. The name hash is CityHash64 of the track-name octets. The full-name hash combines those two values, starting from zero:<a href="#section-6-3" class="pilcrow">¶</a></p>
-<span id="name-full-name-hash"></span><figure id="figure-1">
+<p id="section-6-3">The namespace hash is computed one tuple at a time, in tuple order. An empty namespace hashes as CityHash64 of zero octets. The hash of the first tuple is CityHash64 of that tuple's octets, so a namespace of one tuple has the same hash as that tuple. Each following tuple updates the hash. The previous hash is encoded as 8 octets in network byte order and placed before the next tuple's octets, and CityHash64 of that sequence replaces the hash:<a href="#section-6-3" class="pilcrow">¶</a></p>
+<span id="name-namespace-hash"></span><figure id="figure-1">
         <div class="alignLeft art-text artwork" id="section-6-4.1">
+<pre>
+namespace_hash(tuples):
+    if tuples is empty:
+        return CityHash64 of zero octets
+    h = CityHash64 of the first tuple
+    for each following tuple:
+        h = CityHash64 of (h as 8 octets, most significant octet first,
+                           followed by the tuple octets)
+    return h
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-namespace-hash" class="selfRef">Namespace hash</a>
+        </figcaption></figure>
+<p id="section-6-5">Each tuple stays on its own boundary. The hash of ("a", "bc") differs from the hash of ("ab", "c"), and the hash of ("a", "b") differs from the hash of ("b", "a").<a href="#section-6-5" class="pilcrow">¶</a></p>
+<p id="section-6-6">The name hash is CityHash64 of the track-name octets. The full-name hash combines those two values, starting from zero:<a href="#section-6-6" class="pilcrow">¶</a></p>
+<span id="name-full-name-hash"></span><figure id="figure-2">
+        <div class="alignLeft art-text artwork" id="section-6-7.1">
 <pre>
 hash_combine(seed, value):
     seed = seed XOR (value + 0x9e3779b9 + (seed &lt;&lt; 6) + (value &gt;&gt; 2))
@@ -2002,12 +2020,12 @@ hash_combine(full_name_hash, namespace_hash)
 hash_combine(full_name_hash, name_hash)
 </pre>
 </div>
-<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
 <a href="#name-full-name-hash" class="selfRef">Full-name hash</a>
         </figcaption></figure>
-<p id="section-6-5">Prefix matching uses the CityHash64 of each tuple, compared in order. A namespace A is a prefix of namespace B when A has no more tuples than B and each tuple hash of A equals the tuple hash of B at the same index.<a href="#section-6-5" class="pilcrow">¶</a></p>
-<p id="section-6-6">CityHash64 has a 64-bit output, so distinct names can share a hash. Recomputing a hash from the octets in the same message and comparing it with the hash field detects a malformed message. Two different names that produce one hash stay one forwarding key.<a href="#section-6-6" class="pilcrow">¶</a></p>
-<p id="section-6-7">The forwarding identity of a track is its full-name hash. Announce entries, subscribe entries, and object delivery match on that hash. Prefix matching matches on tuple hashes. Two different octet strings with the same hash are the same key. A node <span class="bcp14">MUST</span> keep one entry for that hash and <span class="bcp14">MUST</span> handle the announces, subscribes, and objects under it as one track. The name octets travel with announce and subscribe messages so an endpoint can rebuild the <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> name. Forwarding does not use those octets as a second identity.<a href="#section-6-7" class="pilcrow">¶</a></p>
+<p id="section-6-8">Prefix matching compares the CityHash64 of each tuple by itself, in order. The chained namespace hash is the namespace input to the full-name hash. A namespace A is a prefix of namespace B when A has no more tuples than B and each tuple hash of A equals the tuple hash of B at the same index.<a href="#section-6-8" class="pilcrow">¶</a></p>
+<p id="section-6-9">CityHash64 has a 64-bit output, so distinct names can share a hash. Recomputing a hash from the octets in the same message and comparing it with the hash field detects a malformed message. Two different names that produce one hash stay one forwarding key.<a href="#section-6-9" class="pilcrow">¶</a></p>
+<p id="section-6-10">The forwarding identity of a track is its full-name hash. Announce entries, subscribe entries, and object delivery match on that hash. Prefix matching matches on tuple hashes. Two different octet strings with the same hash are the same key. A node <span class="bcp14">MUST</span> keep one entry for that hash and <span class="bcp14">MUST</span> handle the announces, subscribes, and objects under it as one track. The name octets travel with announce and subscribe messages so an endpoint can rebuild the <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> name. Forwarding does not use those octets as a second identity.<a href="#section-6-10" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="connection-establishment">
@@ -2207,7 +2225,7 @@ Subscribers                        Subscribers
 <a href="#section-10.2" class="section-number selfRef">10.2. </a><a href="#name-common-header" class="section-name selfRef">Common Header</a>
         </h3>
 <p id="section-10.2-1">Every control message begins with this header. Object payloads do not.<a href="#section-10.2-1" class="pilcrow">¶</a></p>
-<span id="name-common-header-2"></span><figure id="figure-2">
+<span id="name-common-header-2"></span><figure id="figure-3">
           <div class="alignLeft art-text artwork" id="section-10.2-2.1">
 <pre>
 Common Header {
@@ -2217,7 +2235,7 @@ Common Header {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
 <a href="#name-common-header-2" class="selfRef">Common header</a>
           </figcaption></figure>
 <p id="section-10.2-3">Protocol Version is 1. A receiver that does not support the version <span class="bcp14">MUST</span> close the connection.<a href="#section-10.2-3" class="pilcrow">¶</a></p>
@@ -2308,7 +2326,7 @@ Common Header {
 <a href="#section-10.4" class="section-number selfRef">10.4. </a><a href="#name-node-information" class="section-name selfRef">Node Information</a>
         </h3>
 <p id="section-10.4-1">Node information is embedded in CONNECT and CONNECT_RESPONSE and is the body of the node advertisement and withdrawal messages. The path occupies whatever remains of the enclosing length. The number of path items is that remainder divided by 24. A remainder that is not a multiple of 24 is a malformed message.<a href="#section-10.4-1" class="pilcrow">¶</a></p>
-<span id="name-node-information-2"></span><figure id="figure-3">
+<span id="name-node-information-2"></span><figure id="figure-4">
           <div class="alignLeft art-text artwork" id="section-10.4-2.1">
 <pre>
 Node Info {
@@ -2329,7 +2347,7 @@ Path Item {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
+<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
 <a href="#name-node-information-2" class="selfRef">Node information</a>
           </figcaption></figure>
 <p id="section-10.4-3">Node Type is a value from <a href="#node-types" class="auto internal xref">Section 3.1</a>. Any other value is malformed. An unknown type in CONNECT is rejected with response code Connect Error, and the acceptor then closes the connection. An unknown type in CONNECT_RESPONSE makes the initiator close the connection, and no information-base state is created. An unknown type in a node advertisement or withdrawal is a connection error, application error INVALID_ENCODING. Contact Length is a <a href="#varint" class="auto internal xref">Section 10.1</a> count of the following octets.<a href="#section-10.4-3" class="pilcrow">¶</a></p>
@@ -2341,7 +2359,7 @@ Path Item {
 <a href="#section-10.5" class="section-number selfRef">10.5. </a><a href="#name-connect" class="section-name selfRef">CONNECT</a>
         </h3>
 <p id="section-10.5-1">CONNECT is the first message on the control stream. Any other first message is a connection error.<a href="#section-10.5-1" class="pilcrow">¶</a></p>
-<span id="name-connect-2"></span><figure id="figure-4">
+<span id="name-connect-2"></span><figure id="figure-5">
           <div class="alignLeft art-text artwork" id="section-10.5-2.1">
 <pre>
 CONNECT Message {
@@ -2354,7 +2372,7 @@ CONNECT Message {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
+<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
 <a href="#name-connect-2" class="selfRef">CONNECT</a>
           </figcaption></figure>
 <p id="section-10.5-3">Peer Mode is a value from the session mode table. Any other value is rejected with response code Peering Mode Not Allowed, and the acceptor then closes the connection. Token Present is 1 when a token follows and 0 when mutual TLS alone is used. Any other value is a malformed message. Token Length is a <a href="#varint" class="auto internal xref">Section 10.1</a> count of the following token octets. The token is opaque. Node Info describes the initiator and has an empty path. The token fields come before Node Info so the node path can still occupy the remainder of the message.<a href="#section-10.5-3" class="pilcrow">¶</a></p>
@@ -2366,7 +2384,7 @@ CONNECT Message {
 <a href="#section-10.6" class="section-number selfRef">10.6. </a><a href="#name-connect_response" class="section-name selfRef">CONNECT_RESPONSE</a>
         </h3>
 <p id="section-10.6-1">CONNECT_RESPONSE is the first message the acceptor sends. Creating a unidirectional stream before it arrives is a connection error.<a href="#section-10.6-1" class="pilcrow">¶</a></p>
-<span id="name-connect_response-2"></span><figure id="figure-5">
+<span id="name-connect_response-2"></span><figure id="figure-6">
           <div class="alignLeft art-text artwork" id="section-10.6-2.1">
 <pre>
 CONNECT_RESPONSE Message {
@@ -2376,7 +2394,7 @@ CONNECT_RESPONSE Message {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
+<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
 <a href="#name-connect_response-2" class="selfRef">CONNECT_RESPONSE</a>
           </figcaption></figure>
 <p id="section-10.6-3">Node Info is present only when Response Code is 0. It describes the acceptor and has an empty path.<a href="#section-10.6-3" class="pilcrow">¶</a></p>
@@ -2422,7 +2440,7 @@ CONNECT_RESPONSE Message {
         <h3 id="name-node-advertisement-and-with">
 <a href="#section-10.7" class="section-number selfRef">10.7. </a><a href="#name-node-advertisement-and-with" class="section-name selfRef">Node Advertisement and Withdrawal</a>
         </h3>
-<span id="name-node-information-messages"></span><figure id="figure-6">
+<span id="name-node-information-messages"></span><figure id="figure-7">
           <div class="alignLeft art-text artwork" id="section-10.7-1.1">
 <pre>
 NODE_INFO_ADV Message {
@@ -2436,7 +2454,7 @@ NODE_INFO_WD Message {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-6" class="selfRef">Figure 6</a>:
+<figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
 <a href="#name-node-information-messages" class="selfRef">Node information messages</a>
           </figcaption></figure>
 <p id="section-10.7-2">The withdrawal carries the same structure so the receiver can drop the matching candidate, including an inferior path, rather than every candidate for that Node ID. The path in a withdrawal is the path of the candidate being removed.<a href="#section-10.7-2" class="pilcrow">¶</a></p>
@@ -2447,7 +2465,7 @@ NODE_INFO_WD Message {
         <h3 id="name-subscribe-information">
 <a href="#section-10.8" class="section-number selfRef">10.8. </a><a href="#name-subscribe-information" class="section-name selfRef">Subscribe Information</a>
         </h3>
-<span id="name-subscribe-information-messa"></span><figure id="figure-7">
+<span id="name-subscribe-information-messa"></span><figure id="figure-8">
           <div class="alignLeft art-text artwork" id="section-10.8-1.1">
 <pre>
 SUBSCRIBE_INFO_ADV Message {
@@ -2485,12 +2503,12 @@ SUBSCRIBE_INFO_WD Message {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-7" class="selfRef">Figure 7</a>:
+<figcaption><a href="#figure-8" class="selfRef">Figure 8</a>:
 <a href="#name-subscribe-information-messa" class="selfRef">Subscribe information messages</a>
           </figcaption></figure>
 <p id="section-10.8-2">Epoch names the counter and Sequence is the delayed-update counter inside that epoch, as defined in <a href="#subscribe-ib" class="auto internal xref">Section 5.3</a>. A continuation leaves Epoch unchanged, including when Sequence wraps from 65535 to 0. A reset increments Epoch and starts Sequence at 0. Source Node ID is the subscriber relay. The three hashes are defined in <a href="#names" class="auto internal xref">Section 6</a>. Priority is the subscriber's priority. Delivery Timeout and Expires are milliseconds. Zero means the parameter is unset. Forward is zero to pause forwarding and non-zero to forward. New Group Present is 1 when New Group Request ID follows and 0 when it does not. Any other value is a malformed message.<a href="#section-10.8-2" class="pilcrow">¶</a></p>
 <span id="name-track-name"></span><div id="track-name">
-<figure id="figure-8">
+<figure id="figure-9">
           <div class="alignLeft art-text artwork" id="section-10.8-3.1">
 <pre>
 Track Name {
@@ -2503,7 +2521,7 @@ Track Name {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-8" class="selfRef">Figure 8</a>:
+<figcaption><a href="#figure-9" class="selfRef">Figure 9</a>:
 <a href="#name-track-name" class="selfRef">Track name</a>
           </figcaption></figure>
 </div>
@@ -2515,7 +2533,7 @@ Track Name {
         <h3 id="name-announce-information">
 <a href="#section-10.9" class="section-number selfRef">10.9. </a><a href="#name-announce-information" class="section-name selfRef">Announce Information</a>
         </h3>
-<span id="name-announce-information-messag"></span><figure id="figure-9">
+<span id="name-announce-information-messag"></span><figure id="figure-10">
           <div class="alignLeft art-text artwork" id="section-10.9-1.1">
 <pre>
 ANNOUNCE_INFO_ADV Message {
@@ -2535,13 +2553,13 @@ ANNOUNCE_INFO_WD Message {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-9" class="selfRef">Figure 9</a>:
+<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
 <a href="#name-announce-information-messag" class="selfRef">Announce information messages</a>
           </figcaption></figure>
-<p id="section-10.9-2">Source Node ID is the origin relay. Track Name is the structure in <a href="#track-name" class="auto internal xref">Figure 8</a>. It carries the namespace tuples and the track-name octets for an advertisement and for a withdrawal. Full Name Hash is the full-name hash defined in <a href="#names" class="auto internal xref">Section 6</a>. The message does not carry the namespace hash or the name hash. The receiver derives both from Track Name.<a href="#section-10.9-2" class="pilcrow">¶</a></p>
+<p id="section-10.9-2">Source Node ID is the origin relay. Track Name is the structure in <a href="#track-name" class="auto internal xref">Figure 9</a>. It carries the namespace tuples and the track-name octets for an advertisement and for a withdrawal. Full Name Hash is the full-name hash defined in <a href="#names" class="auto internal xref">Section 6</a>. The message does not carry the namespace hash or the name hash. The receiver derives both from Track Name.<a href="#section-10.9-2" class="pilcrow">¶</a></p>
 <p id="section-10.9-3">Bit 0 of Flags selects the kind. Zero is a single track. One is a namespace. All other flag bits <span class="bcp14">MUST</span> be sent as zero and <span class="bcp14">MUST</span> be ignored on receipt.<a href="#section-10.9-3" class="pilcrow">¶</a></p>
 <p id="section-10.9-4">A track announcement uses Name Octets as the track name. Name Length <span class="bcp14">MAY</span> be zero, and the announcement is still a track. A namespace announcement covers the tracks in the namespace given by the tuples. Its Name Length <span class="bcp14">MUST</span> be zero, and Name Octets <span class="bcp14">MUST</span> be empty. A namespace announcement with a non-zero Name Length is a malformed message.<a href="#section-10.9-4" class="pilcrow">¶</a></p>
-<p id="section-10.9-5">The receiver <span class="bcp14">MUST</span> recompute the full-name hash from Track Name and <span class="bcp14">MUST</span> treat a mismatch with Full Name Hash as a malformed message. The namespace hash is CityHash64 of the concatenated tuple octets. The name hash is CityHash64 of Name Octets, which is the hash of zero octets when Name Length is zero. The full-name hash combines those two values as in <a href="#names" class="auto internal xref">Section 6</a>. The same check applies to a track announcement, a namespace announcement, an advertisement, and a withdrawal.<a href="#section-10.9-5" class="pilcrow">¶</a></p>
+<p id="section-10.9-5">The receiver <span class="bcp14">MUST</span> recompute the full-name hash from Track Name and <span class="bcp14">MUST</span> treat a mismatch with Full Name Hash as a malformed message. The namespace hash and the name hash are the values defined in <a href="#names" class="auto internal xref">Section 6</a>. The name hash is CityHash64 of Name Octets, which is the hash of zero octets when Name Length is zero. The same check applies to a track announcement, a namespace announcement, an advertisement, and a withdrawal.<a href="#section-10.9-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="subscriber-node-set">
@@ -2549,7 +2567,7 @@ ANNOUNCE_INFO_WD Message {
         <h3 id="name-subscriber-node-set-2">
 <a href="#section-10.10" class="section-number selfRef">10.10. </a><a href="#name-subscriber-node-set-2" class="section-name selfRef">Subscriber Node Set</a>
         </h3>
-<span id="name-subscriber-node-set-message"></span><figure id="figure-10">
+<span id="name-subscriber-node-set-message"></span><figure id="figure-11">
           <div class="alignLeft art-text artwork" id="section-10.10-1.1">
 <pre>
 SUBSCRIBE_NODE_SET_ADV Message {
@@ -2566,7 +2584,7 @@ SUBSCRIBE_NODE_SET_WD Message {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-10" class="selfRef">Figure 10</a>:
+<figcaption><a href="#figure-11" class="selfRef">Figure 11</a>:
 <a href="#name-subscriber-node-set-message" class="selfRef">Subscriber node set messages</a>
           </figcaption></figure>
 <p id="section-10.10-2">SNS ID is the session-local identifier. Priority is the priority to apply to the flow. Node Count is the number of following Node IDs. The list is a set: order is not significant, and a sender <span class="bcp14">MUST NOT</span> repeat a Node ID. The receiver looks up each Node ID in the node information base. Node IDs that are not known are kept with the set until a later node advertisement makes a next hop available, or until the set is withdrawn.<a href="#section-10.10-2" class="pilcrow">¶</a></p>
@@ -2579,7 +2597,7 @@ SUBSCRIBE_NODE_SET_WD Message {
         </h3>
 <p id="section-10.11-1">Object bytes are carried in QUIC DATAGRAM frames and on unidirectional streams. They are not carried on the bidirectional control stream.<a href="#section-10.11-1" class="pilcrow">¶</a></p>
 <p id="section-10.11-2">A datagram and the first bytes of a new stream start with a data header. Header Length counts every octet of the header, including itself. The payload starts at that offset. Header Length <span class="bcp14">MUST NOT</span> exceed 255, and for the types defined here it is 14 for a datagram and 19 for a new stream.<a href="#section-10.11-2" class="pilcrow">¶</a></p>
-<span id="name-data-header"></span><figure id="figure-11">
+<span id="name-data-header"></span><figure id="figure-12">
           <div class="alignLeft art-text artwork" id="section-10.11-3.1">
 <pre>
 Data Header {
@@ -2589,7 +2607,7 @@ Data Header {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-11" class="selfRef">Figure 11</a>:
+<figcaption><a href="#figure-12" class="selfRef">Figure 12</a>:
 <a href="#name-data-header" class="selfRef">Data header</a>
           </figcaption></figure>
 <span id="name-data-types"></span><table class="center" id="table-9">
@@ -2631,7 +2649,7 @@ Data Header {
           <h4 id="name-datagram">
 <a href="#section-10.11.1" class="section-number selfRef">10.11.1. </a><a href="#name-datagram" class="section-name selfRef">Datagram</a>
           </h4>
-<span id="name-datagram-object"></span><figure id="figure-12">
+<span id="name-datagram-object"></span><figure id="figure-13">
             <div class="alignLeft art-text artwork" id="section-10.11.1-1.1">
 <pre>
 DATAGRAM {
@@ -2643,7 +2661,7 @@ DATAGRAM {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-12" class="selfRef">Figure 12</a>:
+<figcaption><a href="#figure-13" class="selfRef">Figure 13</a>:
 <a href="#name-datagram-object" class="selfRef">Datagram object</a>
             </figcaption></figure>
 <p id="section-10.11.1-2">The payload is the remainder of the QUIC datagram. SNS ID selects the subscriber node set on this session. Full Name Hash selects local subscribers when this node is in the set.<a href="#section-10.11.1-2" class="pilcrow">¶</a></p>
@@ -2655,7 +2673,7 @@ DATAGRAM {
 <a href="#section-10.11.2" class="section-number selfRef">10.11.2. </a><a href="#name-new-stream" class="section-name selfRef">New Stream</a>
           </h4>
 <p id="section-10.11.2-1">A unidirectional stream <span class="bcp14">MUST</span> begin with NEW_STREAM. A stream that does not is reset. The header is not repeated. Every octet after the header, on that stream, is payload.<a href="#section-10.11.2-1" class="pilcrow">¶</a></p>
-<span id="name-new-stream-header"></span><figure id="figure-13">
+<span id="name-new-stream-header"></span><figure id="figure-14">
             <div class="alignLeft art-text artwork" id="section-10.11.2-2.1">
 <pre>
 NEW_STREAM {
@@ -2669,7 +2687,7 @@ NEW_STREAM {
 }
 </pre>
 </div>
-<figcaption><a href="#figure-13" class="selfRef">Figure 13</a>:
+<figcaption><a href="#figure-14" class="selfRef">Figure 14</a>:
 <a href="#name-new-stream-header" class="selfRef">New stream header</a>
             </figcaption></figure>
 <p id="section-10.11.2-3">Priority is the QUIC priority of the egress streams created from this stream. TTL Milliseconds is the object lifetime described in <a href="#pipeline-forwarding" class="auto internal xref">Section 9.1</a>.<a href="#section-10.11.2-3" class="pilcrow">¶</a></p>
