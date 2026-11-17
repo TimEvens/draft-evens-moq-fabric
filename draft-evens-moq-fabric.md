@@ -1,7 +1,7 @@
 ---
-title: "Media over QUIC Relay Peering Protocol"
-abbrev: moq-peering
-docname: draft-evens-moq-peering-latest
+title: "Media over QUIC Relay Fabric Protocol"
+abbrev: moq-fabric
+docname: draft-evens-moq-fabric-latest
 date: {DATE}
 category: std
 
@@ -12,15 +12,15 @@ workgroup: "Media Over QUIC"
 keyword:
  - media over quic
  - relay
- - peering
+ - fabric
 
 venue:
   group: "Media Over QUIC"
   type: "Working Group"
   mail: "moq@ietf.org"
   arch: "https://mailarchive.ietf.org/arch/browse/moq/"
-  github: "TimEvens/draft-evens-moq-peering"
-  latest: "https://timevens.github.io/draft-evens-moq-peering/draft-evens-moq-peering.html"
+  github: "TimEvens/draft-evens-moq-fabric"
+  latest: "https://timevens.github.io/draft-evens-moq-fabric/draft-evens-moq-fabric.html"
 
 stand_alone: yes
 smart_quotes: no
@@ -49,7 +49,7 @@ normative:
 
 --- abstract
 
-This document defines the relay peering protocol used by Media over QUIC ({{MOQT}}) relays to exchange node, announce, and subscribe information and to forward objects between relays. Peering is split into control peering and data peering. Control peering stays established and carries the information bases. Data peering carries objects and MAY be pre-established or opened on demand. The two functions MAY share one QUIC session or use separate sessions. A peering session uses mutual TLS, together with an OPTIONAL token for authentication and authorization, before the peers exchange peering state.
+This document defines moq-fabric, the relay fabric protocol used by Media over QUIC ({{MOQT}}) relays to exchange node, announce, and subscribe information and to forward objects between relays. The fabric is split into control peering and data peering. Control peering stays established and carries the information bases. Data peering carries objects and MAY be pre-established or opened on demand. The two functions MAY share one QUIC session or use separate sessions. A fabric session uses mutual TLS, together with an OPTIONAL token for authentication and authorization, before the peers exchange fabric state.
 
 --- middle
 
@@ -57,7 +57,7 @@ This document defines the relay peering protocol used by Media over QUIC ({{MOQT
 
 {{MOQT}} defines how a client publishes and subscribes to tracks at a relay. It leaves the relay-to-relay topology, the information a relay needs about other relays, and the encoding used to move objects between relays unspecified. A deployment that floods every announce and subscribe on the same path used for objects couples control-plane state to the data path and makes traffic engineering, fan-out, and policy enforcement difficult.
 
-This document specifies how relays peer. Each relay keeps information bases that describe the nodes it can reach, the tracks that have been announced, and the subscribes that are active. Relays exchange those bases on control peering. They forward object bytes on data peering, using a subscriber node set to say which subscriber relays need the objects. Each hop chooses its own next hop from the node information base.
+This document specifies moq-fabric. Each relay keeps information bases that describe the nodes it can reach, the tracks that have been announced, and the subscribes that are active. Relays exchange those bases on control peering. They forward object bytes on data peering, using a subscriber node set to say which subscriber relays need the objects. Each hop chooses its own next hop from the node information base.
 
 Control peering is always on for a peering relationship that exchanges information bases. Data peering MAY already be up, or a relay MAY open it when a forwarding path needs it. One QUIC connection can carry both, or the functions can use different connections. Several data connections MAY exist between the same pair of relays.
 
@@ -70,7 +70,7 @@ The QUIC handshake authenticates both endpoints with mutual TLS. An OPTIONAL tok
 The terms Client, Server, Publisher, Subscriber, Track, Track Namespace, and Object are imported from {{MOQT}}.
 
 Node:
-: A relay that participates in peering. A node has a Node ID, a node type, and a contact address.
+: A relay that participates in the fabric. A node has a Node ID, a node type, and a contact address.
 
 Node ID:
 : An unsigned 64-bit identifier that is unique among the nodes that exchange information bases.
@@ -81,7 +81,7 @@ Control peering:
 Data peering:
 : A peering function that forwards objects. It MAY be established before there is anything to send, or opened when a path needs it.
 
-Peering session:
+Fabric session:
 : One QUIC connection between two nodes, used for control peering, data peering, or both.
 
 Origin relay:
@@ -98,28 +98,28 @@ Subscriber node set (SNS):
 
 # Overview
 
-Relays peer over {{QUIC}}. A session has one bidirectional stream for peering control messages. Object bytes use unidirectional streams and QUIC DATAGRAM frames. The application-layer protocol negotiation (ALPN) token is the ASCII string `moq-peering`.
+Relays peer over {{QUIC}}. A session has one bidirectional stream for fabric control messages. Object bytes use unidirectional streams and QUIC DATAGRAM frames. The application-layer protocol negotiation (ALPN) token is the ASCII string `moq-fabric`.
 
-Three session modes are negotiated in the first peering message:
+Three session modes are negotiated in the first fabric message:
 
 | Value | Name    | What the session carries                                      |
 |:------|:--------|:--------------------------------------------------------------|
 | 0     | Control | Information bases. No object payloads.                        |
 | 1     | Data    | Objects, plus the session-local subscriber node set.          |
 | 2     | Both    | Information bases and objects on the same QUIC connection.    |
-{: title="Peering session modes" }
+{: title="Fabric session modes" }
 
 Control peering uses mode Control or mode Both. Data peering uses mode Data or mode Both. A data session still has the bidirectional stream, because that stream carries the connect exchange and the subscriber node set for that session. A data session does not synchronize the information bases of other nodes.
 
 ## Relay Types {#node-types}
 
-The node type is configured for the relay and is advertised with the node. A change of type requires the node to drop its peering sessions and reconnect so peers learn the new type.
+The node type is configured for the relay and is advertised with the node. A change of type requires the node to drop its fabric sessions and reconnect so peers learn the new type.
 
 | Value | Name | Behavior |
 |:------|:-----|:---------|
 | 0     | Via  | Forwards between relays. Does not accept {{MOQT}} clients. |
 | 1     | Edge | Accepts {{MOQT}} clients and peers with Via, Edge, and Stub nodes. |
-| 2     | Stub | Accepts local clients, dials one or more Edge parents, and does not accept inbound peering. |
+| 2     | Stub | Accepts local clients, dials one or more Edge parents, and does not accept inbound fabric sessions. |
 {: title="Node types" }
 
 ### Via
@@ -130,15 +130,15 @@ Via nodes are placed where many Edge nodes can share one fan-out. An Edge node u
 
 ### Edge
 
-An Edge node accepts {{MOQT}} client sessions and peering sessions. It is the node that turns a client announce or subscribe into information-base state, and the node that turns received objects back into {{MOQT}} objects for local subscribers. It computes subscriber node sets for the data sessions it sends on.
+An Edge node accepts {{MOQT}} client sessions and fabric sessions. It is the node that turns a client announce or subscribe into information-base state, and the node that turns received objects back into {{MOQT}} objects for local subscribers. It computes subscriber node sets for the data sessions it sends on.
 
 An Edge node MAY sit behind a load balancer or an anycast address. The contact string advertised for the node is the name or address peers use to open a session, which MAY be the load balancer rather than an individual process.
 
 ### Stub
 
-A Stub node is a lightweight child of one or more Edge parents. It dials those parents, uses session mode Both, and sends objects in both directions on the sessions it opened. That lets a Stub sit behind address translation or a firewall. A Stub does not accept inbound peering and is not installed in the node information base of any node other than its parents.
+A Stub node is a lightweight child of one or more Edge parents. It dials those parents, uses session mode Both, and sends objects in both directions on the sessions it opened. That lets a Stub sit behind address translation or a firewall. A Stub does not accept inbound fabric sessions and is not installed in the node information base of any node other than its parents.
 
-The parent Edge regenerates announce and subscribe state with its own Node ID as the source. Other relays see the parent, not the Stub. A Stub that has many local subscribers still produces one peering subscribe for a track at the parent. The parent is the s-relay and the o-relay for the rest of the network.
+The parent Edge regenerates announce and subscribe state with its own Node ID as the source. Other relays see the parent, not the Stub. A Stub that has many local subscribers still produces one fabric subscribe for a track at the parent. The parent is the s-relay and the o-relay for the rest of the network.
 
 A client implementation MAY speak this protocol as a Stub instead of opening a {{MOQT}} session to an Edge. The Edge still presents that client to the rest of the network as its own.
 
@@ -180,9 +180,9 @@ A publisher and a subscriber meet through two Edges. A Stub, when one is present
 2. The subscriber subscribes at an Edge, or at a Stub. That Edge originates one subscribe for the track, again under its own Node ID. Many local clients, including clients of a Stub, collapse to that one subscribe. Control peering carries it toward the origin Edge.
 3. The origin Edge matches the subscribe to the announce by the namespace and the full-name hash. It selects a data session toward the subscriber Edge. The session may be direct or may pass through one or more Via nodes.
 4. The origin creates a subscriber node set on that data session. The set lists the subscriber Edge. Each hop that receives the set chooses its own next data session and advertises the subset of Node IDs that use that session.
-5. Objects follow those data sessions. The header names the set identifier and the full-name hash. The subscriber Edge removes the peering header and delivers the objects to its local subscriber, or to the Stub on the combined session the Stub opened.
+5. Objects follow those data sessions. The header names the set identifier and the full-name hash. The subscriber Edge removes the fabric header and delivers the objects to its local subscriber, or to the Stub on the combined session the Stub opened.
 
-# Peering Sessions
+# Fabric Sessions
 
 ## Control Peering
 
@@ -275,7 +275,7 @@ Stub nodes are not inserted into the node information base beyond their parent.
 
 ### Node ID
 
-Every node that appears in the node information base MUST be configured with a distinct Node ID. When two advertisements carry the same Node ID on different sessions, path selection keeps the better candidate. Operators assign the identifier. A deployment that hashes a host name or a device identifier to fill the 64-bit value MUST ensure the result does not collide inside the peering domain.
+Every node that appears in the node information base MUST be configured with a distinct Node ID. When two advertisements carry the same Node ID on different sessions, path selection keeps the better candidate. Operators assign the identifier. A deployment that hashes a host name or a device identifier to fill the 64-bit value MUST ensure the result does not collide inside the fabric.
 
 The textual form is `<high>:<low>`. The colon is REQUIRED. Each side is an unsigned 32-bit integer in decimal, or two unsigned 16-bit integers separated by a dot. The two styles MAY be mixed.
 
@@ -306,7 +306,7 @@ Longitude, Latitude:
 : The node location in degrees, as binary64 values. Policy use of these values is deployment-specific.
 
 Metric:
-: An unsigned 64-bit cost. Lower sums are preferred. The default node metric is 100. Let `M` be the node metric and `S` the metric configured for one peering session. The cost advertised on that session, in a self-advertisement and in a path item this node appends, is `max(M, S)`. A session metric lower than or equal to `M` leaves the advertised cost equal to `M`.
+: An unsigned 64-bit cost. Lower sums are preferred. The default node metric is 100. Let `M` be the node metric and `S` the metric configured for one fabric session. The cost advertised on that session, in a self-advertisement and in a path item this node appends, is `max(M, S)`. A session metric lower than or equal to `M` leaves the advertised cost equal to `M`.
 
 Path:
 : The ordered list of hops that forwarded this advertisement. Empty when the node advertises itself.
@@ -332,13 +332,13 @@ The announce information base records namespaces and tracks that publishers have
 
 An entry is either a single track or a namespace that covers many tracks. Both kinds carry the namespace tuples. A namespace entry has an empty track name. Receivers index entries by the full-name hash and by successive namespace-tuple hashes so a later subscribe can find a matching announce. The full-name hash is checked against those octets as defined in {{announce-info}}.
 
-Announce state is flooded on control peering, subject to policy. A relay MAY drop an announcement on input or on output. A subscriber relay uses the entries it keeps to answer a {{MOQT}} subscriber and to learn publisher parameters that were conveyed by the local {{MOQT}} stack. Relays that only forward peering messages use the hash and the source Node ID.
+Announce state is flooded on control peering, subject to policy. A relay MAY drop an announcement on input or on output. A subscriber relay uses the entries it keeps to answer a {{MOQT}} subscriber and to learn publisher parameters that were conveyed by the local {{MOQT}} stack. Relays that only forward fabric messages use the hash and the source Node ID.
 
 A withdrawal is sent when the publisher unannounces. The withdrawal is propagated on control peering the same way as the advertisement. Duplicate advertisements for the same source and full-name hash are not forwarded again.
 
 ## Subscribe Information Base {#subscribe-ib}
 
-The subscribe information base records active subscribes. The subscriber relay originates an entry when it accepts a {{MOQT}} subscribe, or when its Stub child sends one. The source Node ID is that Edge. One entry represents the subscriber relay, not each local client. Many clients on one Edge collapse to one peering subscribe per track. Different subscribe parameters do not create another entry. A later update replaces the parameters of that same entry.
+The subscribe information base records active subscribes. The subscriber relay originates an entry when it accepts a {{MOQT}} subscribe, or when its Stub child sends one. The source Node ID is that Edge. One entry represents the subscriber relay, not each local client. Many clients on one Edge collapse to one fabric subscribe per track. Different subscribe parameters do not create another entry. A later update replaces the parameters of that same entry.
 
 Each advertisement and withdrawal of an entry carries a 16-bit epoch and a 16-bit sequence number. The epoch names the counter. The sequence number orders updates of that same counter and is used only to detect a delayed update. Neither value is part of the entry identity. The entry identity is the source Node ID and the track. The source increments the sequence number by one for each update of that entry, wrapping from 65535 to 0, and leaves the epoch unchanged. That wrap is a continuation. A reset is not a wrap. The source increments the epoch by one, wrapping from 65535 to 0, and starts the sequence at 0. Intermediate nodes forward the epoch and the sequence unchanged.
 
@@ -352,7 +352,7 @@ While an interval runs, the retained epoch and sequences stay in force. The sour
 
 A source that still has the last epoch and sequence number it sent MUST continue from those values as soon as it returns. It MUST NOT wait, it MUST NOT change the epoch, and it MUST NOT start the sequence over. The age of the saved values does not matter. A continuation uses the same epoch, so a receiver accepts it whether or not that receiver's interval has ended.
 
-A source that does not have the last epoch and sequence number it sent has reset the counter. It increments the epoch and starts the sequence at 0. It counts its wait from the moment it restarts. Restart is the moment the source is ready to open peering sessions, not the moment any receiver removes it. There is no bound on how late a node withdrawal can arrive. A receiver can remove the source after the restart, and its retention interval can still be running after any fixed pair of baselines. If those baselines arrived while the old sequence was retained, they were ignored, and nothing remains to be delivered when the interval ends. The source therefore MUST NOT stop after a scheduled number of transmissions.
+A source that does not have the last epoch and sequence number it sent has reset the counter. It increments the epoch and starts the sequence at 0. It counts its wait from the moment it restarts. Restart is the moment the source is ready to open fabric sessions, not the moment any receiver removes it. There is no bound on how late a node withdrawal can arrive. A receiver can remove the source after the restart, and its retention interval can still be running after any fixed pair of baselines. If those baselines arrived while the old sequence was retained, they were ignored, and nothing remains to be delivered when the interval ends. The source therefore MUST NOT stop after a scheduled number of transmissions.
 
 The source MUST NOT send a subscribe advertisement or a subscribe withdrawal until 30 seconds after that restart. It MAY send node advertisements during the wait, so receivers can observe that it is back. When the wait ends, the source MUST send the current subscribe state of each entry it still holds. It MUST send that current state again at least once every 30 seconds for as long as the entry exists. Each of those sends is an update in the new epoch: the source increments the sequence number by one even when the parameters are unchanged, and it does not increment the epoch again. An equal retransmission would be ignored by a peer that already has the entry, and that peer would not forward it. A later receiver that had discarded the old sequence would then see nothing. When the source withdraws the entry, it stops this repetition and sends the withdrawal with the next sequence number in that epoch.
 
@@ -370,7 +370,7 @@ A withdrawal removes the entry and updates the forwarding information base. The 
 
 The forwarding information base is local. It is not encoded as an information-base message.
 
-For each remote Node ID the node keeps the peering session that path selection chose. For each object flow the node keeps the mapping from an ingress subscriber-node-set identifier to the egress session and the egress identifier. A local subscriber is represented by a zero session identifier and a zero set identifier, which means the object is delivered to the {{MOQT}} stack on this node.
+For each remote Node ID the node keeps the fabric session that path selection chose. For each object flow the node keeps the mapping from an ingress subscriber-node-set identifier to the egress session and the egress identifier. A local subscriber is represented by a zero session identifier and a zero set identifier, which means the object is delivered to the {{MOQT}} stack on this node.
 
 The table is updated when a node advertisement changes the best session, when a subscribe is added or removed, and when a subscriber node set arrives. An object stream that is already open keeps its previous egress until that stream ends. A new stream, and every datagram, uses the session currently in the table. {{path-change}} states when forwarding stops.
 
@@ -431,7 +431,7 @@ The forwarding identity of a track is its full-name hash. Announce entries, subs
 
 ## Transport
 
-The connection uses {{QUIC}} with the TLS handshake specified by {{QUIC-TLS}}. Implementations MUST NOT negotiate a TLS version older than TLS 1.3 {{TLS}}. The ALPN token MUST be `moq-peering`.
+The connection uses {{QUIC}} with the TLS handshake specified by {{QUIC-TLS}}. Implementations MUST NOT negotiate a TLS version older than TLS 1.3 {{TLS}}. The ALPN token MUST be `moq-fabric`.
 
 Either node MAY open the connection. The node that opens it is the initiator and sends CONNECT. The node that accepts it sends CONNECT_RESPONSE.
 
@@ -441,21 +441,21 @@ Authentication and authorization are part of session setup and finish before inf
 
 * Each node presents a certificate in the TLS handshake and MUST authenticate the peer.
 * The initiator MUST NOT send CONNECT until the handshake has completed and the peer certificate has been accepted.
-* The acceptor MUST NOT send peering messages, and MUST NOT accept CONNECT, until it has authenticated the initiator.
+* The acceptor MUST NOT send fabric messages, and MUST NOT accept CONNECT, until it has authenticated the initiator.
 * A failed mutual TLS authentication closes the QUIC connection. No information-base state is created.
 * When a token is used, the initiator places it in CONNECT. The acceptor checks it before accepting the session. The token MAY identify the peer and MAY authorize the Node ID and the requested session mode.
 * A missing token that the policy requires, a token that fails authentication, or a token that does not authorize the session is rejected with response code Not Authorized. The acceptor then closes the connection. No information-base state is created.
 
-Certificate material is configuration. Peering messages do not carry certificates or private keys, and implementations MUST NOT embed that material in source. Before use, the certificate MUST satisfy all of the following:
+Certificate material is configuration. Fabric messages do not carry certificates or private keys, and implementations MUST NOT embed that material in source. Before use, the certificate MUST satisfy all of the following:
 
 * The current time is within the certificate validity period.
 * The signature uses SHA-256 or a stronger hash. MD5 and SHA-1 signatures MUST be rejected.
 * An RSA key is at least 2048 bits. An elliptic-curve key uses P-256 or a stronger curve.
-* The certificate chains to a trust anchor configured for this peering domain, or matches a peer credential that was configured explicitly.
+* The certificate chains to a trust anchor configured for this fabric, or matches a peer credential that was configured explicitly.
 
 A self-signed certificate is suitable only where every peer is configured to trust that exact certificate, such as a laboratory or a closed relay domain. It is not a substitute for a trust anchor on an open network.
 
-Mutual TLS establishes the peer identity. CONNECT carries the Node ID, the requested session mode, and the OPTIONAL token. The acceptor binds the Node ID to the mutual TLS identity and, when a token is present, to that token. A Node ID that the policy does not allow for that identity is rejected with response code Not Authorized. A requested mode that the policy does not allow is rejected with response code Peering Mode Not Allowed. The token is an opaque octet string. Its format and the authority that issues it are deployment policy. Implementations MUST NOT embed tokens in source.
+Mutual TLS establishes the peer identity. CONNECT carries the Node ID, the requested session mode, and the OPTIONAL token. The acceptor binds the Node ID to the mutual TLS identity and, when a token is present, to that token. A Node ID that the policy does not allow for that identity is rejected with response code Not Authorized. A requested mode that the policy does not allow is rejected with response code Fabric Mode Not Allowed. The token is an opaque octet string. Its format and the authority that issues it are deployment policy. Implementations MUST NOT embed tokens in source.
 
 Deployments SHOULD use the key-exchange groups provided by their QUIC stack for TLS 1.3, including a hybrid post-quantum group when the stack and the peer both support one. Signature algorithms and certificate keys remain the ones listed above.
 
@@ -494,11 +494,11 @@ The inputs available to selection grow over time. Load, geographic policy, and r
 
 # Data Forwarding
 
-Objects move from the origin relay to each subscriber relay. Intermediate Via nodes do not parse {{MOQT}} object payloads. They read the peering header, look up the subscriber node set, and write the same payload bytes on the next sessions. The origin and subscriber relays are the points that convert between {{MOQT}} and this encapsulation.
+Objects move from the origin relay to each subscriber relay. Intermediate Via nodes do not parse {{MOQT}} object payloads. They read the fabric header, look up the subscriber node set, and write the same payload bytes on the next sessions. The origin and subscriber relays are the points that convert between {{MOQT}} and this encapsulation.
 
-The origin relay builds one subscriber node set per egress data session. The set contains the subscriber relays whose best path uses that session. The origin then sends the objects on that session with the set identifier in the peering header.
+The origin relay builds one subscriber node set per egress data session. The set contains the subscriber relays whose best path uses that session. The origin then sends the objects on that session with the set identifier in the fabric header.
 
-A Via or Edge that receives the set splits it. Node IDs that share the same next hop are placed in one egress set. The egress set is advertised on that next session with a new session-local identifier, and the node records the mapping from the ingress identifier to that egress identifier. If the node's own Node ID is in the set, the full-name hash in the object header selects the local {{MOQT}} subscribers. The peering header is removed before those bytes are handed to {{MOQT}}.
+A Via or Edge that receives the set splits it. Node IDs that share the same next hop are placed in one egress set. The egress set is advertised on that next session with a new session-local identifier, and the node records the mapping from the ingress identifier to that egress identifier. If the node's own Node ID is in the set, the full-name hash in the object header selects the local {{MOQT}} subscribers. The fabric header is removed before those bytes are handed to {{MOQT}}.
 
 ~~~
 Publisher
@@ -522,9 +522,9 @@ Subscribers                        Subscribers
 
 Datagram objects are forwarded as whole datagrams. A datagram that does not fit the next hop is dropped. This protocol does not fragment datagrams. Publishers that need to cross a smaller maximum transmission unit send objects on streams, or send datagrams that fit the smallest hop.
 
-A stream is pipelined. The first bytes of a new unidirectional stream carry a peering header. Every following byte on that stream is payload and is written through without a further peering header. A relay does not reassemble the {{MOQT}} object before forwarding. Reassembly is the subscriber's job, and the job of a relay that has chosen to cache. A caching relay acts as a {{MOQT}} subscriber and publisher on that track.
+A stream is pipelined. The first bytes of a new unidirectional stream carry a fabric header. Every following byte on that stream is payload and is written through without a further fabric header. A relay does not reassemble the {{MOQT}} object before forwarding. Reassembly is the subscriber's job, and the job of a relay that has chosen to cache. A caching relay acts as a {{MOQT}} subscriber and publisher on that track.
 
-A new {{MOQT}} group or subgroup arrives as a new QUIC stream. The relay mirrors that transition: the new stream gets a new peering header, and the previous stream ends. One active peering stream represents the current stream for that flow on a session.
+A new {{MOQT}} group or subgroup arrives as a new QUIC stream. The relay mirrors that transition: the new stream gets a new fabric header, and the previous stream ends. One active fabric stream represents the current stream for that flow on a session.
 
 The time-to-live in a new-stream header applies to the objects on that stream. The timer for an object starts when the object is received. The priority in that header is the priority of the egress QUIC stream and the priority offered to local {{MOQT}} subscribers.
 
@@ -636,7 +636,7 @@ CONNECT Message {
 ~~~
 {: title="CONNECT" }
 
-Peer Mode is a value from the session mode table. Any other value is rejected with response code Peering Mode Not Allowed, and the acceptor then closes the connection. Token Present is 1 when a token follows and 0 when mutual TLS alone is used. Any other value is a malformed message. Token Length is a {{varint}} count of the following token octets. The token is opaque. Node Info describes the initiator and has an empty path. The token fields come before Node Info so the node path can still occupy the remainder of the message.
+Peer Mode is a value from the session mode table. Any other value is rejected with response code Fabric Mode Not Allowed, and the acceptor then closes the connection. Token Present is 1 when a token follows and 0 when mutual TLS alone is used. Any other value is a malformed message. Token Length is a {{varint}} count of the following token octets. The token is opaque. Node Info describes the initiator and has an empty path. The token fields come before Node Info so the node path can still occupy the remainder of the message.
 
 ## CONNECT_RESPONSE
 
@@ -658,7 +658,7 @@ Node Info is present only when Response Code is 0. It describes the acceptor and
 | 0    | No Error                 | The session is accepted.                     |
 | 1    | Connect Error            | The connect request cannot be completed.     |
 | 2    | Not Authorized           | The authenticated identity is not allowed.   |
-| 3    | Peering Mode Not Allowed | The requested session mode is not allowed.   |
+| 3    | Fabric Mode Not Allowed | The requested session mode is not allowed.   |
 {: title="Response codes" }
 
 ## Node Advertisement and Withdrawal
@@ -840,7 +840,7 @@ Priority is the QUIC priority of the egress streams created from this stream. TT
 
 ### Existing Stream Bytes
 
-After NEW_STREAM, further payload on the same QUIC stream is sent with no peering header. The SNS ID, full-name hash, priority, and time-to-live stay those of the NEW_STREAM header that opened the stream. An implementation classifies those bytes as existing-stream data locally. It does not put Data Type 1 on the wire. A stream whose first header has a Data Type other than 2, including type 1, is reset with application error INVALID_START_OF_STREAM. A datagram whose Data Type is not 0 is discarded.
+After NEW_STREAM, further payload on the same QUIC stream is sent with no fabric header. The SNS ID, full-name hash, priority, and time-to-live stay those of the NEW_STREAM header that opened the stream. An implementation classifies those bytes as existing-stream data locally. It does not put Data Type 1 on the wire. A stream whose first header has a Data Type other than 2, including type 1, is reset with application error INVALID_START_OF_STREAM. A datagram whose Data Type is not 0 is discarded.
 
 # Error Handling
 
@@ -873,17 +873,17 @@ A subscriber that leaves and rejoins quickly would otherwise withdraw and re-adv
 
 # Security Considerations
 
-Mutual TLS, as specified in {{authentication}}, authenticates every peering session. An OPTIONAL token in CONNECT provides additional authentication and authorization. A node that skips verification of the peer certificate accepts a session from any endpoint that completes the handshake and can then inject node, announce, and subscribe state. Implementations MUST authenticate the peer before CONNECT. A token is a credential. Implementations MUST NOT log it, and they MUST treat a missing or rejected token as Not Authorized when local policy requires one.
+Mutual TLS, as specified in {{authentication}}, authenticates every fabric session. An OPTIONAL token in CONNECT provides additional authentication and authorization. A node that skips verification of the peer certificate accepts a session from any endpoint that completes the handshake and can then inject node, announce, and subscribe state. Implementations MUST authenticate the peer before CONNECT. A token is a credential. Implementations MUST NOT log it, and they MUST treat a missing or rejected token as Not Authorized when local policy requires one.
 
 The certificate checks in {{authentication}} exclude expired credentials, weak public keys, and MD5 or SHA-1 signatures. Trust anchors and any explicitly trusted self-signed certificates are deployment configuration. A self-signed certificate used beyond a closed domain will not be accepted by a peer that requires a chain to a known anchor.
 
 The authenticated identity is bound to the Node ID in CONNECT. Without that binding, a peer that holds a valid certificate could advertise a Node ID it does not own and attract object flows. Policy at the acceptor enforces the binding and returns Not Authorized when it fails.
 
-The name hashes in {{names}} are 64-bit CityHash64 forwarding keys. A collision merges two names into one peering track, so objects for one name can be delivered on the subscribe state of the other. A peer that is allowed to choose track names can attempt that collision. The hash check on a subscribe or an announce accepts the message when the hash field matches the octets in that same message. A second name that hashes to a key already in use joins that same track.
+The name hashes in {{names}} are 64-bit CityHash64 forwarding keys. A collision merges two names into one fabric track, so objects for one name can be delivered on the subscribe state of the other. A peer that is allowed to choose track names can attempt that collision. The hash check on a subscribe or an announce accepts the message when the hash field matches the octets in that same message. A second name that hashes to a key already in use joins that same track.
 
 Control peering distributes the names of tracks and the identities of the relays that publish or subscribe. Filtering announce and subscribe advertisements is the mechanism that keeps a track inside a region or a customer boundary. A missing filter is a data leak, because an origin relay that learns a subscribe will forward objects toward that subscriber relay.
 
-Object payloads are opaque to intermediate relays and are protected by the QUIC session on each hop. This protocol does not add a second encryption layer. End-to-end confidentiality and integrity of {{MOQT}} objects are the responsibility of the application and of {{MOQT}}, not of the peering encapsulation. Each hop can read the payload bytes it forwards.
+Object payloads are opaque to intermediate relays and are protected by the QUIC session on each hop. This protocol does not add a second encryption layer. End-to-end confidentiality and integrity of {{MOQT}} objects are the responsibility of the application and of {{MOQT}}, not of the fabric encapsulation. Each hop can read the payload bytes it forwards.
 
 The subscriber node set tells a data peer which Edge nodes receive a flow. That is visible to every hop on the data path. Deployments that treat the set of receivers as sensitive keep data sessions inside the same trust domain that already carries the objects.
 
@@ -897,12 +897,12 @@ IANA is requested to add the following entry to the "TLS Application-Layer Proto
 
 | Protocol | Identification Sequence | Reference |
 |:---------|:------------------------|:----------|
-| Media over QUIC Relay Peering | `moq-peering` | This document |
+| Media over QUIC Relay Fabric Protocol | `moq-fabric` | This document |
 {: title="ALPN identification" }
 
-## Peering Registries
+## Fabric Registries
 
-IANA is requested to create a "MOQ Relay Peering" registry group containing the registries below. New registrations in each registry use the Specification Required policy {{RFC8126}}.
+IANA is requested to create a "MOQ Relay Fabric" registry group containing the registries below. New registrations in each registry use the Specification Required policy {{RFC8126}}.
 
 ### Message Type Registry {#iana-message-types}
 
@@ -928,4 +928,4 @@ The registry covers the application error codes used with this ALPN. The values 
 
 # Acknowledgments
 
-The peering design reflected here was developed alongside the moq-peering relay library.
+The fabric design reflected here was developed alongside the moq-fabric relay library.

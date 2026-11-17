@@ -1,6 +1,6 @@
-# draft-evens-moq-peering
+# draft-evens-moq-fabric
 
-* [Editor's Copy](https://timevens.github.io/draft-evens-moq-peering/#go.draft-evens-moq-peering.html)
+* [Editor's Copy](https://timevens.github.io/draft-evens-moq-fabric/#go.draft-evens-moq-fabric.html)
 
 ## Contributing
 See the [guidelines for contributions](CONTRIBUTING.md).
@@ -14,7 +14,7 @@ The GitHub interface supports creating pull requests using the Edit (✏) button
 make html
 ```
 
-This writes `draft-evens-moq-peering.html`. `make` also builds the text form.
+This writes `draft-evens-moq-fabric.html`. `make` also builds the text form.
 Publishing that HTML to the `gh-pages` branch, which GitHub Pages serves as the Editor's Copy, is `make gh-pages`.
 Pushes to `main` run the same build in GitHub Actions and update the page.
 
