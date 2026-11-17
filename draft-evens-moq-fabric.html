@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta content="Common,Latin" name="scripts">
 <meta content="initial-scale=1.0" name="viewport">
-<title>Media over QUIC Relay Peering Protocol</title>
+<title>Media over QUIC Relay Fabric Protocol</title>
 <meta content="Tim Evens" name="author">
 <meta content="
-       This document defines the relay peering protocol used by Media over QUIC ( ) relays to exchange node, announce, and subscribe information and to forward objects between relays. Peering is split into control peering and data peering. Control peering stays established and carries the information bases. Data peering carries objects and  MAY  be pre-established or opened on demand. The two functions  MAY  share one QUIC session or use separate sessions. A peering session uses mutual TLS, together with an  OPTIONAL  token for authentication and authorization, before the peers exchange peering state. 
+       This document defines moq-fabric, the relay fabric protocol used by Media over QUIC ( ) relays to exchange node, announce, and subscribe information and to forward objects between relays. The fabric is split into control peering and data peering. Control peering stays established and carries the information bases. Data peering carries objects and  MAY  be pre-established or opened on demand. The two functions  MAY  share one QUIC session or use separate sessions. A fabric session uses mutual TLS, together with an  OPTIONAL  token for authentication and authorization, before the peers exchange fabric state. 
     " name="description">
 <meta content="xml2rfc 3.35.0" name="generator">
 <meta content="media over quic" name="keyword">
 <meta content="relay" name="keyword">
-<meta content="peering" name="keyword">
-<meta content="draft-evens-moq-peering-latest" name="ietf.draft">
+<meta content="fabric" name="keyword">
+<meta content="draft-evens-moq-fabric-latest" name="ietf.draft">
 <!-- Generator version information:
   xml2rfc 3.35.0
     Python 3.14.10
@@ -29,7 +29,7 @@
     requests 2.33.1
     wcwidth 0.9.4
 -->
-<link href="draft-evens-moq-peering.xml" rel="alternate" type="application/rfc+xml">
+<link href="draft-evens-moq-fabric.xml" rel="alternate" type="application/rfc+xml">
 <link href="#copyright" rel="license">
 <style type="text/css">@font-face {
   font-family: 'Lora';
@@ -1025,12 +1025,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <table class="ears">
 <thead><tr>
 <td class="left">Internet-Draft</td>
-<td class="center">moq-peering</td>
+<td class="center">moq-fabric</td>
 <td class="right">November 2026</td>
 </tr></thead>
 <tfoot><tr>
 <td class="left">Evens</td>
-<td class="center">Expires 20 May 2027</td>
+<td class="center">Expires 21 May 2027</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1040,15 +1040,15 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dt class="label-workgroup">Workgroup:</dt>
 <dd class="workgroup">Media Over QUIC</dd>
 <dt class="label-internet-draft">Internet-Draft:</dt>
-<dd class="internet-draft">draft-evens-moq-peering-latest</dd>
+<dd class="internet-draft">draft-evens-moq-fabric-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2026-11-16" class="published">16 November 2026</time>
+<time datetime="2026-11-17" class="published">17 November 2026</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Standards Track</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2027-05-20">20 May 2027</time></dd>
+<dd class="expires"><time datetime="2027-05-21">21 May 2027</time></dd>
 <dt class="label-authors">Author:</dt>
 <dd class="authors">
 <div class="author">
@@ -1058,10 +1058,10 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </dd>
 </dl>
 </div>
-<h1 id="title">Media over QUIC Relay Peering Protocol</h1>
+<h1 id="title">Media over QUIC Relay Fabric Protocol</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
-<p id="section-abstract-1">This document defines the relay peering protocol used by Media over QUIC (<span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>) relays to exchange node, announce, and subscribe information and to forward objects between relays. Peering is split into control peering and data peering. Control peering stays established and carries the information bases. Data peering carries objects and <span class="bcp14">MAY</span> be pre-established or opened on demand. The two functions <span class="bcp14">MAY</span> share one QUIC session or use separate sessions. A peering session uses mutual TLS, together with an <span class="bcp14">OPTIONAL</span> token for authentication and authorization, before the peers exchange peering state.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+<p id="section-abstract-1">This document defines moq-fabric, the relay fabric protocol used by Media over QUIC (<span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>) relays to exchange node, announce, and subscribe information and to forward objects between relays. The fabric is split into control peering and data peering. Control peering stays established and carries the information bases. Data peering carries objects and <span class="bcp14">MAY</span> be pre-established or opened on demand. The two functions <span class="bcp14">MAY</span> share one QUIC session or use separate sessions. A fabric session uses mutual TLS, together with an <span class="bcp14">OPTIONAL</span> token for authentication and authorization, before the peers exchange fabric state.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
 </section>
 <section class="note rfcEditorRemove" id="section-note.1">
       <h2 id="name-about-this-document">
@@ -1069,15 +1069,15 @@ svg :is([fill="white"], [fill^="#fff"]) {
       </h2>
 <p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
 <p id="section-note.1-2">
-        The latest revision of this draft can be found at <span><a href="https://timevens.github.io/draft-evens-moq-peering/draft-evens-moq-peering.html">https://timevens.github.io/draft-evens-moq-peering/draft-evens-moq-peering.html</a></span>.
-        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-evens-moq-peering/">https://datatracker.ietf.org/doc/draft-evens-moq-peering/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+        The latest revision of this draft can be found at <span><a href="https://timevens.github.io/draft-evens-moq-fabric/draft-evens-moq-fabric.html">https://timevens.github.io/draft-evens-moq-fabric/draft-evens-moq-fabric.html</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-evens-moq-fabric/">https://datatracker.ietf.org/doc/draft-evens-moq-fabric/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
 <p id="section-note.1-3">
         Discussion of this document takes place on the
         Media Over QUIC Working Group mailing list (<span><a href="mailto:moq@ietf.org">mailto:moq@ietf.org</a></span>),
         which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/moq/">https://mailarchive.ietf.org/arch/browse/moq/</a></span>.
         Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/moq/">https://www.ietf.org/mailman/listinfo/moq/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
 <p id="section-note.1-4">Source for this draft and an issue tracker can be found at
-        <span><a href="https://github.com/TimEvens/draft-evens-moq-peering">https://github.com/TimEvens/draft-evens-moq-peering</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+        <span><a href="https://github.com/TimEvens/draft-evens-moq-fabric">https://github.com/TimEvens/draft-evens-moq-fabric</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
 </section>
 <div id="status-of-memo">
 <section id="section-boilerplate.1">
@@ -1098,7 +1098,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 20 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 21 May 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1162,7 +1162,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
-            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-peering-sessions" class="internal xref">Peering Sessions</a></p>
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-fabric-sessions" class="internal xref">Fabric Sessions</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
                 <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-control-peering" class="internal xref">Control Peering</a></p>
@@ -1319,7 +1319,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
                 <p id="section-toc.1-1.14.2.1.1"><a href="#section-14.1" class="auto internal xref">14.1</a>.  <a href="#name-alpn-identification" class="internal xref">ALPN Identification</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2">
-                <p id="section-toc.1-1.14.2.2.1"><a href="#section-14.2" class="auto internal xref">14.2</a>.  <a href="#name-peering-registries" class="internal xref">Peering Registries</a></p>
+                <p id="section-toc.1-1.14.2.2.1"><a href="#section-14.2" class="auto internal xref">14.2</a>.  <a href="#name-fabric-registries" class="internal xref">Fabric Registries</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14.2.2.2.1">
                     <p id="section-toc.1-1.14.2.2.2.1.1"><a href="#section-14.2.1" class="auto internal xref">14.2.1</a>.  <a href="#name-message-type-registry" class="internal xref">Message Type Registry</a></p>
@@ -1359,7 +1359,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
 <p id="section-1-1"><span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> defines how a client publishes and subscribes to tracks at a relay. It leaves the relay-to-relay topology, the information a relay needs about other relays, and the encoding used to move objects between relays unspecified. A deployment that floods every announce and subscribe on the same path used for objects couples control-plane state to the data path and makes traffic engineering, fan-out, and policy enforcement difficult.<a href="#section-1-1" class="pilcrow">¶</a></p>
-<p id="section-1-2">This document specifies how relays peer. Each relay keeps information bases that describe the nodes it can reach, the tracks that have been announced, and the subscribes that are active. Relays exchange those bases on control peering. They forward object bytes on data peering, using a subscriber node set to say which subscriber relays need the objects. Each hop chooses its own next hop from the node information base.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-2">This document specifies moq-fabric. Each relay keeps information bases that describe the nodes it can reach, the tracks that have been announced, and the subscribes that are active. Relays exchange those bases on control peering. They forward object bytes on data peering, using a subscriber node set to say which subscriber relays need the objects. Each hop chooses its own next hop from the node information base.<a href="#section-1-2" class="pilcrow">¶</a></p>
 <p id="section-1-3">Control peering is always on for a peering relationship that exchanges information bases. Data peering <span class="bcp14">MAY</span> already be up, or a relay <span class="bcp14">MAY</span> open it when a forwarding path needs it. One QUIC connection can carry both, or the functions can use different connections. Several data connections <span class="bcp14">MAY</span> exist between the same pair of relays.<a href="#section-1-3" class="pilcrow">¶</a></p>
 <p id="section-1-4">The QUIC handshake authenticates both endpoints with mutual TLS. An <span class="bcp14">OPTIONAL</span> token authenticates and authorizes the session as well, before the peers exchange information bases.<a href="#section-1-4" class="pilcrow">¶</a></p>
 </section>
@@ -1377,7 +1377,7 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
 <span class="break"></span><dl class="dlParallel" id="section-2-3">
         <dt id="section-2-3.1">Node:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.2">
-          <p id="section-2-3.2.1">A relay that participates in peering. A node has a Node ID, a node type, and a contact address.<a href="#section-2-3.2.1" class="pilcrow">¶</a></p>
+          <p id="section-2-3.2.1">A relay that participates in the fabric. A node has a Node ID, a node type, and a contact address.<a href="#section-2-3.2.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
 <dt id="section-2-3.3">Node ID:</dt>
@@ -1395,7 +1395,7 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
           <p id="section-2-3.8.1">A peering function that forwards objects. It <span class="bcp14">MAY</span> be established before there is anything to send, or opened when a path needs it.<a href="#section-2-3.8.1" class="pilcrow">¶</a></p>
 </dd>
         <dd class="break"></dd>
-<dt id="section-2-3.9">Peering session:</dt>
+<dt id="section-2-3.9">Fabric session:</dt>
         <dd style="margin-left: 1.5em" id="section-2-3.10">
           <p id="section-2-3.10.1">One QUIC connection between two nodes, used for control peering, data peering, or both.<a href="#section-2-3.10.1" class="pilcrow">¶</a></p>
 </dd>
@@ -1428,12 +1428,12 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
       <h2 id="name-overview">
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-overview" class="section-name selfRef">Overview</a>
       </h2>
-<p id="section-3-1">Relays peer over <span>[<a href="#QUIC" class="cite xref">QUIC</a>]</span>. A session has one bidirectional stream for peering control messages. Object bytes use unidirectional streams and QUIC DATAGRAM frames. The application-layer protocol negotiation (ALPN) token is the ASCII string <code>moq-peering</code>.<a href="#section-3-1" class="pilcrow">¶</a></p>
-<p id="section-3-2">Three session modes are negotiated in the first peering message:<a href="#section-3-2" class="pilcrow">¶</a></p>
-<span id="name-peering-session-modes"></span><table class="center" id="table-1">
+<p id="section-3-1">Relays peer over <span>[<a href="#QUIC" class="cite xref">QUIC</a>]</span>. A session has one bidirectional stream for fabric control messages. Object bytes use unidirectional streams and QUIC DATAGRAM frames. The application-layer protocol negotiation (ALPN) token is the ASCII string <code>moq-fabric</code>.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-2">Three session modes are negotiated in the first fabric message:<a href="#section-3-2" class="pilcrow">¶</a></p>
+<span id="name-fabric-session-modes"></span><table class="center" id="table-1">
         <caption>
 <a href="#table-1" class="selfRef">Table 1</a>:
-<a href="#name-peering-session-modes" class="selfRef">Peering session modes</a>
+<a href="#name-fabric-session-modes" class="selfRef">Fabric session modes</a>
         </caption>
 <thead>
           <tr>
@@ -1466,7 +1466,7 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
         <h3 id="name-relay-types">
 <a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-relay-types" class="section-name selfRef">Relay Types</a>
         </h3>
-<p id="section-3.1-1">The node type is configured for the relay and is advertised with the node. A change of type requires the node to drop its peering sessions and reconnect so peers learn the new type.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.1-1">The node type is configured for the relay and is advertised with the node. A change of type requires the node to drop its fabric sessions and reconnect so peers learn the new type.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
 <span id="name-node-types"></span><table class="center" id="table-2">
           <caption>
 <a href="#table-2" class="selfRef">Table 2</a>:
@@ -1493,7 +1493,7 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
             <tr>
               <td class="text-left" rowspan="1" colspan="1">2</td>
               <td class="text-left" rowspan="1" colspan="1">Stub</td>
-              <td class="text-left" rowspan="1" colspan="1">Accepts local clients, dials one or more Edge parents, and does not accept inbound peering.</td>
+              <td class="text-left" rowspan="1" colspan="1">Accepts local clients, dials one or more Edge parents, and does not accept inbound fabric sessions.</td>
             </tr>
           </tbody>
         </table>
@@ -1511,7 +1511,7 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
           <h4 id="name-edge">
 <a href="#section-3.1.2" class="section-number selfRef">3.1.2. </a><a href="#name-edge" class="section-name selfRef">Edge</a>
           </h4>
-<p id="section-3.1.2-1">An Edge node accepts <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> client sessions and peering sessions. It is the node that turns a client announce or subscribe into information-base state, and the node that turns received objects back into <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> objects for local subscribers. It computes subscriber node sets for the data sessions it sends on.<a href="#section-3.1.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.1.2-1">An Edge node accepts <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> client sessions and fabric sessions. It is the node that turns a client announce or subscribe into information-base state, and the node that turns received objects back into <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> objects for local subscribers. It computes subscriber node sets for the data sessions it sends on.<a href="#section-3.1.2-1" class="pilcrow">¶</a></p>
 <p id="section-3.1.2-2">An Edge node <span class="bcp14">MAY</span> sit behind a load balancer or an anycast address. The contact string advertised for the node is the name or address peers use to open a session, which <span class="bcp14">MAY</span> be the load balancer rather than an individual process.<a href="#section-3.1.2-2" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -1520,8 +1520,8 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
           <h4 id="name-stub">
 <a href="#section-3.1.3" class="section-number selfRef">3.1.3. </a><a href="#name-stub" class="section-name selfRef">Stub</a>
           </h4>
-<p id="section-3.1.3-1">A Stub node is a lightweight child of one or more Edge parents. It dials those parents, uses session mode Both, and sends objects in both directions on the sessions it opened. That lets a Stub sit behind address translation or a firewall. A Stub does not accept inbound peering and is not installed in the node information base of any node other than its parents.<a href="#section-3.1.3-1" class="pilcrow">¶</a></p>
-<p id="section-3.1.3-2">The parent Edge regenerates announce and subscribe state with its own Node ID as the source. Other relays see the parent, not the Stub. A Stub that has many local subscribers still produces one peering subscribe for a track at the parent. The parent is the s-relay and the o-relay for the rest of the network.<a href="#section-3.1.3-2" class="pilcrow">¶</a></p>
+<p id="section-3.1.3-1">A Stub node is a lightweight child of one or more Edge parents. It dials those parents, uses session mode Both, and sends objects in both directions on the sessions it opened. That lets a Stub sit behind address translation or a firewall. A Stub does not accept inbound fabric sessions and is not installed in the node information base of any node other than its parents.<a href="#section-3.1.3-1" class="pilcrow">¶</a></p>
+<p id="section-3.1.3-2">The parent Edge regenerates announce and subscribe state with its own Node ID as the source. Other relays see the parent, not the Stub. A Stub that has many local subscribers still produces one fabric subscribe for a track at the parent. The parent is the s-relay and the o-relay for the rest of the network.<a href="#section-3.1.3-2" class="pilcrow">¶</a></p>
 <p id="section-3.1.3-3">A client implementation <span class="bcp14">MAY</span> speak this protocol as a Stub instead of opening a <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> session to an Edge. The Edge still presents that client to the rest of the network as its own.<a href="#section-3.1.3-3" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -1590,17 +1590,17 @@ Publisher --&gt; Origin Edge --&gt; Via --&gt; Subscriber Edge --&gt; Subscriber
             <p id="section-3.4-2.4.1">The origin creates a subscriber node set on that data session. The set lists the subscriber Edge. Each hop that receives the set chooses its own next data session and advertises the subset of Node IDs that use that session.<a href="#section-3.4-2.4.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-3.4-2.5">
-            <p id="section-3.4-2.5.1">Objects follow those data sessions. The header names the set identifier and the full-name hash. The subscriber Edge removes the peering header and delivers the objects to its local subscriber, or to the Stub on the combined session the Stub opened.<a href="#section-3.4-2.5.1" class="pilcrow">¶</a></p>
+            <p id="section-3.4-2.5.1">Objects follow those data sessions. The header names the set identifier and the full-name hash. The subscriber Edge removes the fabric header and delivers the objects to its local subscriber, or to the Stub on the combined session the Stub opened.<a href="#section-3.4-2.5.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>
 </div>
 </section>
 </div>
-<div id="peering-sessions">
+<div id="fabric-sessions">
 <section id="section-4">
-      <h2 id="name-peering-sessions">
-<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-peering-sessions" class="section-name selfRef">Peering Sessions</a>
+      <h2 id="name-fabric-sessions">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-fabric-sessions" class="section-name selfRef">Fabric Sessions</a>
       </h2>
 <div id="control-peering">
 <section id="section-4.1">
@@ -1796,7 +1796,7 @@ Publisher --&gt; Origin Edge --&gt; Via --&gt; Subscriber Edge --&gt; Subscriber
           <h4 id="name-node-id">
 <a href="#section-5.1.1" class="section-number selfRef">5.1.1. </a><a href="#name-node-id" class="section-name selfRef">Node ID</a>
           </h4>
-<p id="section-5.1.1-1">Every node that appears in the node information base <span class="bcp14">MUST</span> be configured with a distinct Node ID. When two advertisements carry the same Node ID on different sessions, path selection keeps the better candidate. Operators assign the identifier. A deployment that hashes a host name or a device identifier to fill the 64-bit value <span class="bcp14">MUST</span> ensure the result does not collide inside the peering domain.<a href="#section-5.1.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1.1-1">Every node that appears in the node information base <span class="bcp14">MUST</span> be configured with a distinct Node ID. When two advertisements carry the same Node ID on different sessions, path selection keeps the better candidate. Operators assign the identifier. A deployment that hashes a host name or a device identifier to fill the 64-bit value <span class="bcp14">MUST</span> ensure the result does not collide inside the fabric.<a href="#section-5.1.1-1" class="pilcrow">¶</a></p>
 <p id="section-5.1.1-2">The textual form is <code>&lt;high&gt;:&lt;low&gt;</code>. The colon is <span class="bcp14">REQUIRED</span>. Each side is an unsigned 32-bit integer in decimal, or two unsigned 16-bit integers separated by a dot. The two styles <span class="bcp14">MAY</span> be mixed.<a href="#section-5.1.1-2" class="pilcrow">¶</a></p>
 <span id="name-node-id-textual-examples"></span><table class="center" id="table-5">
             <caption>
@@ -1873,7 +1873,7 @@ Publisher --&gt; Origin Edge --&gt; Via --&gt; Subscriber Edge --&gt; Subscriber
             <dd class="break"></dd>
 <dt id="section-5.1.2-2.9">Metric:</dt>
             <dd style="margin-left: 1.5em" id="section-5.1.2-2.10">
-              <p id="section-5.1.2-2.10.1">An unsigned 64-bit cost. Lower sums are preferred. The default node metric is 100. Let <code>M</code> be the node metric and <code>S</code> the metric configured for one peering session. The cost advertised on that session, in a self-advertisement and in a path item this node appends, is <code>max(M, S)</code>. A session metric lower than or equal to <code>M</code> leaves the advertised cost equal to <code>M</code>.<a href="#section-5.1.2-2.10.1" class="pilcrow">¶</a></p>
+              <p id="section-5.1.2-2.10.1">An unsigned 64-bit cost. Lower sums are preferred. The default node metric is 100. Let <code>M</code> be the node metric and <code>S</code> the metric configured for one fabric session. The cost advertised on that session, in a self-advertisement and in a path item this node appends, is <code>max(M, S)</code>. A session metric lower than or equal to <code>M</code> leaves the advertised cost equal to <code>M</code>.<a href="#section-5.1.2-2.10.1" class="pilcrow">¶</a></p>
 </dd>
             <dd class="break"></dd>
 <dt id="section-5.1.2-2.11">Path:</dt>
@@ -1933,7 +1933,7 @@ Publisher --&gt; Origin Edge --&gt; Via --&gt; Subscriber Edge --&gt; Subscriber
         </h3>
 <p id="section-5.2-1">The announce information base records namespaces and tracks that publishers have announced. An Edge or Stub originates an entry when a local publisher announces. The source Node ID is the Edge that owns the publisher. A Stub's parent uses its own Node ID.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
 <p id="section-5.2-2">An entry is either a single track or a namespace that covers many tracks. Both kinds carry the namespace tuples. A namespace entry has an empty track name. Receivers index entries by the full-name hash and by successive namespace-tuple hashes so a later subscribe can find a matching announce. The full-name hash is checked against those octets as defined in <a href="#announce-info" class="auto internal xref">Section 10.9</a>.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
-<p id="section-5.2-3">Announce state is flooded on control peering, subject to policy. A relay <span class="bcp14">MAY</span> drop an announcement on input or on output. A subscriber relay uses the entries it keeps to answer a <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> subscriber and to learn publisher parameters that were conveyed by the local <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> stack. Relays that only forward peering messages use the hash and the source Node ID.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
+<p id="section-5.2-3">Announce state is flooded on control peering, subject to policy. A relay <span class="bcp14">MAY</span> drop an announcement on input or on output. A subscriber relay uses the entries it keeps to answer a <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> subscriber and to learn publisher parameters that were conveyed by the local <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> stack. Relays that only forward fabric messages use the hash and the source Node ID.<a href="#section-5.2-3" class="pilcrow">¶</a></p>
 <p id="section-5.2-4">A withdrawal is sent when the publisher unannounces. The withdrawal is propagated on control peering the same way as the advertisement. Duplicate advertisements for the same source and full-name hash are not forwarded again.<a href="#section-5.2-4" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -1942,14 +1942,14 @@ Publisher --&gt; Origin Edge --&gt; Via --&gt; Subscriber Edge --&gt; Subscriber
         <h3 id="name-subscribe-information-base">
 <a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-subscribe-information-base" class="section-name selfRef">Subscribe Information Base</a>
         </h3>
-<p id="section-5.3-1">The subscribe information base records active subscribes. The subscriber relay originates an entry when it accepts a <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> subscribe, or when its Stub child sends one. The source Node ID is that Edge. One entry represents the subscriber relay, not each local client. Many clients on one Edge collapse to one peering subscribe per track. Different subscribe parameters do not create another entry. A later update replaces the parameters of that same entry.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.3-1">The subscribe information base records active subscribes. The subscriber relay originates an entry when it accepts a <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> subscribe, or when its Stub child sends one. The source Node ID is that Edge. One entry represents the subscriber relay, not each local client. Many clients on one Edge collapse to one fabric subscribe per track. Different subscribe parameters do not create another entry. A later update replaces the parameters of that same entry.<a href="#section-5.3-1" class="pilcrow">¶</a></p>
 <p id="section-5.3-2">Each advertisement and withdrawal of an entry carries a 16-bit epoch and a 16-bit sequence number. The epoch names the counter. The sequence number orders updates of that same counter and is used only to detect a delayed update. Neither value is part of the entry identity. The entry identity is the source Node ID and the track. The source increments the sequence number by one for each update of that entry, wrapping from 65535 to 0, and leaves the epoch unchanged. That wrap is a continuation. A reset is not a wrap. The source increments the epoch by one, wrapping from 65535 to 0, and starts the sequence at 0. Intermediate nodes forward the epoch and the sequence unchanged.<a href="#section-5.3-2" class="pilcrow">¶</a></p>
 <p id="section-5.3-3">A receiver stores the epoch and the greatest sequence number it has accepted in that epoch for that source and track. Withdrawing the entry removes the subscribe and updates the forwarding information base, and the receiver keeps that epoch and sequence number while the source is still reachable. Sequence numbers are compared only when the epochs are equal. A later advertisement or withdrawal in the same epoch is accepted only when its sequence number is greater, except for the equal advertisement described below. When a message in the same epoch arrives with a lower sequence number, that message is a delayed update and <span class="bcp14">MUST</span> be ignored, because a greater sequence number was already received. An equal sequence number in the same epoch <span class="bcp14">MUST</span> be ignored while the entry is present, and <span class="bcp14">MUST</span> be ignored after the receiver has accepted a withdrawal for that sequence. This stops a delayed advertisement from restoring a subscribe that was withdrawn. An equal advertisement in the same epoch <span class="bcp14">MUST</span> be accepted when the entry was removed because the source became unreachable and the receiver has not accepted a withdrawal at that sequence. That advertisement resumes the same subscribe. The comparison uses the unsigned distance <code>(received - stored) mod 65536</code>. A distance of 1 through 32767 means the received sequence is greater, so after the counter wraps inside the same epoch, 0 is greater than 65535. A distance of 32768 through 65535 means the received sequence is lower. A distance of 0 means the sequences are equal.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
 <p id="section-5.3-4">A different epoch is a different counter. The receiver <span class="bcp14">MUST NOT</span> compare its sequence number with the retained sequence. Epoch 1 sequence 0 is not a continuation of epoch 0 sequence 65535, even though the sequence distance from 65535 to 0 is 1. While the receiver retains an epoch, an advertisement or withdrawal with any other epoch <span class="bcp14">MUST</span> be ignored and <span class="bcp14">MUST NOT</span> cancel the retention interval. When the receiver holds no epoch for that source and track, the message is a new baseline and both values are stored.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
 <p id="section-5.3-5">When a receiver removes a source Node ID from its node information base and no remaining session reaches that source, the receiver starts a retention interval for the epoch and sequence numbers of that source. The interval is 30 seconds and is not negotiated. The receiver counts those 30 seconds from the moment it removes the source. Receivers do not share a clock. A receiver that removes the source later starts its interval later, and its interval can still be running after another receiver has discarded the same sequences. A withdrawal that leaves the source reachable through another session <span class="bcp14">MUST NOT</span> start an interval and <span class="bcp14">MUST NOT</span> discard the sequences. If that withdrawal never makes the source unreachable, because a newer node advertisement has already installed another session, no interval starts from it.<a href="#section-5.3-5" class="pilcrow">¶</a></p>
 <p id="section-5.3-6">While an interval runs, the retained epoch and sequences stay in force. The source becoming reachable again does not cancel the interval and does not move its deadline earlier or later. A greater sequence number in the same epoch means the source continued its counter, including a wrap from 65535 to 0. The receiver <span class="bcp14">MUST</span> cancel the interval and keep that sequence. A different epoch does not. If the interval is not cancelled, the receiver <span class="bcp14">MUST</span> discard the retained epoch and sequences when it ends. The next advertisement for that source is then a new baseline, and its epoch and sequence number are stored even when the counter has started over.<a href="#section-5.3-6" class="pilcrow">¶</a></p>
 <p id="section-5.3-7">A source that still has the last epoch and sequence number it sent <span class="bcp14">MUST</span> continue from those values as soon as it returns. It <span class="bcp14">MUST NOT</span> wait, it <span class="bcp14">MUST NOT</span> change the epoch, and it <span class="bcp14">MUST NOT</span> start the sequence over. The age of the saved values does not matter. A continuation uses the same epoch, so a receiver accepts it whether or not that receiver's interval has ended.<a href="#section-5.3-7" class="pilcrow">¶</a></p>
-<p id="section-5.3-8">A source that does not have the last epoch and sequence number it sent has reset the counter. It increments the epoch and starts the sequence at 0. It counts its wait from the moment it restarts. Restart is the moment the source is ready to open peering sessions, not the moment any receiver removes it. There is no bound on how late a node withdrawal can arrive. A receiver can remove the source after the restart, and its retention interval can still be running after any fixed pair of baselines. If those baselines arrived while the old sequence was retained, they were ignored, and nothing remains to be delivered when the interval ends. The source therefore <span class="bcp14">MUST NOT</span> stop after a scheduled number of transmissions.<a href="#section-5.3-8" class="pilcrow">¶</a></p>
+<p id="section-5.3-8">A source that does not have the last epoch and sequence number it sent has reset the counter. It increments the epoch and starts the sequence at 0. It counts its wait from the moment it restarts. Restart is the moment the source is ready to open fabric sessions, not the moment any receiver removes it. There is no bound on how late a node withdrawal can arrive. A receiver can remove the source after the restart, and its retention interval can still be running after any fixed pair of baselines. If those baselines arrived while the old sequence was retained, they were ignored, and nothing remains to be delivered when the interval ends. The source therefore <span class="bcp14">MUST NOT</span> stop after a scheduled number of transmissions.<a href="#section-5.3-8" class="pilcrow">¶</a></p>
 <p id="section-5.3-9">The source <span class="bcp14">MUST NOT</span> send a subscribe advertisement or a subscribe withdrawal until 30 seconds after that restart. It <span class="bcp14">MAY</span> send node advertisements during the wait, so receivers can observe that it is back. When the wait ends, the source <span class="bcp14">MUST</span> send the current subscribe state of each entry it still holds. It <span class="bcp14">MUST</span> send that current state again at least once every 30 seconds for as long as the entry exists. Each of those sends is an update in the new epoch: the source increments the sequence number by one even when the parameters are unchanged, and it does not increment the epoch again. An equal retransmission would be ignored by a peer that already has the entry, and that peer would not forward it. A later receiver that had discarded the old sequence would then see nothing. When the source withdraws the entry, it stops this repetition and sends the withdrawal with the next sequence number in that epoch.<a href="#section-5.3-9" class="pilcrow">¶</a></p>
 <p id="section-5.3-10">A receiver that still retains the old epoch <span class="bcp14">MUST</span> ignore these updates, whatever their sequence numbers are, and <span class="bcp14">MUST NOT</span> forward them. The modular sequence test does not apply across epochs, so a reset sequence of 0 does not become acceptable merely because the retained sequence is 65535. When that receiver's own interval ends it discards the retained epoch and sequences, however long after the restart that is. It then has no stored epoch. The next of these updates is a new baseline, and the receiver <span class="bcp14">MUST</span> forward it. A receiver that has already accepted the new counter <span class="bcp14">MUST</span> accept the following update, because its sequence number is greater, and <span class="bcp14">MUST</span> forward it. The repetition runs until the entry is withdrawn, so a removal that happens long after the restart is still followed by an update the receiver can accept. A source that has never sent a subscribe sequence is not resetting a counter. It starts at epoch 0 and <span class="bcp14">MAY</span> send the first advertisement immediately, and it does not repeat that advertisement on this timer.<a href="#section-5.3-10" class="pilcrow">¶</a></p>
 <p id="section-5.3-11">The entry carries the track hashes, the subscribe parameters, and the namespace and track-name octets. The octets let the origin relay construct the <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> subscribe toward the publisher. Other relays can forward the entry without interpreting the name. A receiver <span class="bcp14">MUST</span> recompute the hashes from the name octets and <span class="bcp14">MUST</span> treat a mismatch as a malformed message.<a href="#section-5.3-11" class="pilcrow">¶</a></p>
@@ -1964,7 +1964,7 @@ Publisher --&gt; Origin Edge --&gt; Via --&gt; Subscriber Edge --&gt; Subscriber
 <a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-forwarding-information-base" class="section-name selfRef">Forwarding Information Base</a>
         </h3>
 <p id="section-5.4-1">The forwarding information base is local. It is not encoded as an information-base message.<a href="#section-5.4-1" class="pilcrow">¶</a></p>
-<p id="section-5.4-2">For each remote Node ID the node keeps the peering session that path selection chose. For each object flow the node keeps the mapping from an ingress subscriber-node-set identifier to the egress session and the egress identifier. A local subscriber is represented by a zero session identifier and a zero set identifier, which means the object is delivered to the <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> stack on this node.<a href="#section-5.4-2" class="pilcrow">¶</a></p>
+<p id="section-5.4-2">For each remote Node ID the node keeps the fabric session that path selection chose. For each object flow the node keeps the mapping from an ingress subscriber-node-set identifier to the egress session and the egress identifier. A local subscriber is represented by a zero session identifier and a zero set identifier, which means the object is delivered to the <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> stack on this node.<a href="#section-5.4-2" class="pilcrow">¶</a></p>
 <p id="section-5.4-3">The table is updated when a node advertisement changes the best session, when a subscribe is added or removed, and when a subscriber node set arrives. An object stream that is already open keeps its previous egress until that stream ends. A new stream, and every datagram, uses the session currently in the table. <a href="#path-change" class="auto internal xref">Section 9.3</a> states when forwarding stops.<a href="#section-5.4-3" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2038,7 +2038,7 @@ hash_combine(full_name_hash, name_hash)
         <h3 id="name-transport">
 <a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-transport" class="section-name selfRef">Transport</a>
         </h3>
-<p id="section-7.1-1">The connection uses <span>[<a href="#QUIC" class="cite xref">QUIC</a>]</span> with the TLS handshake specified by <span>[<a href="#QUIC-TLS" class="cite xref">QUIC-TLS</a>]</span>. Implementations <span class="bcp14">MUST NOT</span> negotiate a TLS version older than TLS 1.3 <span>[<a href="#TLS" class="cite xref">TLS</a>]</span>. The ALPN token <span class="bcp14">MUST</span> be <code>moq-peering</code>.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<p id="section-7.1-1">The connection uses <span>[<a href="#QUIC" class="cite xref">QUIC</a>]</span> with the TLS handshake specified by <span>[<a href="#QUIC-TLS" class="cite xref">QUIC-TLS</a>]</span>. Implementations <span class="bcp14">MUST NOT</span> negotiate a TLS version older than TLS 1.3 <span>[<a href="#TLS" class="cite xref">TLS</a>]</span>. The ALPN token <span class="bcp14">MUST</span> be <code>moq-fabric</code>.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
 <p id="section-7.1-2">Either node <span class="bcp14">MAY</span> open the connection. The node that opens it is the initiator and sends CONNECT. The node that accepts it sends CONNECT_RESPONSE.<a href="#section-7.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2056,7 +2056,7 @@ hash_combine(full_name_hash, name_hash)
             <p id="section-7.2-2.2.1">The initiator <span class="bcp14">MUST NOT</span> send CONNECT until the handshake has completed and the peer certificate has been accepted.<a href="#section-7.2-2.2.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-7.2-2.3">
-            <p id="section-7.2-2.3.1">The acceptor <span class="bcp14">MUST NOT</span> send peering messages, and <span class="bcp14">MUST NOT</span> accept CONNECT, until it has authenticated the initiator.<a href="#section-7.2-2.3.1" class="pilcrow">¶</a></p>
+            <p id="section-7.2-2.3.1">The acceptor <span class="bcp14">MUST NOT</span> send fabric messages, and <span class="bcp14">MUST NOT</span> accept CONNECT, until it has authenticated the initiator.<a href="#section-7.2-2.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-7.2-2.4">
             <p id="section-7.2-2.4.1">A failed mutual TLS authentication closes the QUIC connection. No information-base state is created.<a href="#section-7.2-2.4.1" class="pilcrow">¶</a></p>
@@ -2068,7 +2068,7 @@ hash_combine(full_name_hash, name_hash)
             <p id="section-7.2-2.6.1">A missing token that the policy requires, a token that fails authentication, or a token that does not authorize the session is rejected with response code Not Authorized. The acceptor then closes the connection. No information-base state is created.<a href="#section-7.2-2.6.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
-<p id="section-7.2-3">Certificate material is configuration. Peering messages do not carry certificates or private keys, and implementations <span class="bcp14">MUST NOT</span> embed that material in source. Before use, the certificate <span class="bcp14">MUST</span> satisfy all of the following:<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+<p id="section-7.2-3">Certificate material is configuration. Fabric messages do not carry certificates or private keys, and implementations <span class="bcp14">MUST NOT</span> embed that material in source. Before use, the certificate <span class="bcp14">MUST</span> satisfy all of the following:<a href="#section-7.2-3" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-7.2-4.1">
             <p id="section-7.2-4.1.1">The current time is within the certificate validity period.<a href="#section-7.2-4.1.1" class="pilcrow">¶</a></p>
@@ -2080,11 +2080,11 @@ hash_combine(full_name_hash, name_hash)
             <p id="section-7.2-4.3.1">An RSA key is at least 2048 bits. An elliptic-curve key uses P-256 or a stronger curve.<a href="#section-7.2-4.3.1" class="pilcrow">¶</a></p>
 </li>
           <li class="normal" id="section-7.2-4.4">
-            <p id="section-7.2-4.4.1">The certificate chains to a trust anchor configured for this peering domain, or matches a peer credential that was configured explicitly.<a href="#section-7.2-4.4.1" class="pilcrow">¶</a></p>
+            <p id="section-7.2-4.4.1">The certificate chains to a trust anchor configured for this fabric, or matches a peer credential that was configured explicitly.<a href="#section-7.2-4.4.1" class="pilcrow">¶</a></p>
 </li>
         </ul>
 <p id="section-7.2-5">A self-signed certificate is suitable only where every peer is configured to trust that exact certificate, such as a laboratory or a closed relay domain. It is not a substitute for a trust anchor on an open network.<a href="#section-7.2-5" class="pilcrow">¶</a></p>
-<p id="section-7.2-6">Mutual TLS establishes the peer identity. CONNECT carries the Node ID, the requested session mode, and the <span class="bcp14">OPTIONAL</span> token. The acceptor binds the Node ID to the mutual TLS identity and, when a token is present, to that token. A Node ID that the policy does not allow for that identity is rejected with response code Not Authorized. A requested mode that the policy does not allow is rejected with response code Peering Mode Not Allowed. The token is an opaque octet string. Its format and the authority that issues it are deployment policy. Implementations <span class="bcp14">MUST NOT</span> embed tokens in source.<a href="#section-7.2-6" class="pilcrow">¶</a></p>
+<p id="section-7.2-6">Mutual TLS establishes the peer identity. CONNECT carries the Node ID, the requested session mode, and the <span class="bcp14">OPTIONAL</span> token. The acceptor binds the Node ID to the mutual TLS identity and, when a token is present, to that token. A Node ID that the policy does not allow for that identity is rejected with response code Not Authorized. A requested mode that the policy does not allow is rejected with response code Fabric Mode Not Allowed. The token is an opaque octet string. Its format and the authority that issues it are deployment policy. Implementations <span class="bcp14">MUST NOT</span> embed tokens in source.<a href="#section-7.2-6" class="pilcrow">¶</a></p>
 <p id="section-7.2-7">Deployments <span class="bcp14">SHOULD</span> use the key-exchange groups provided by their QUIC stack for TLS 1.3, including a hybrid post-quantum group when the stack and the peer both support one. Signature algorithms and certificate keys remain the ones listed above.<a href="#section-7.2-7" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2139,9 +2139,9 @@ Initiator                         Acceptor
       <h2 id="name-data-forwarding">
 <a href="#section-9" class="section-number selfRef">9. </a><a href="#name-data-forwarding" class="section-name selfRef">Data Forwarding</a>
       </h2>
-<p id="section-9-1">Objects move from the origin relay to each subscriber relay. Intermediate Via nodes do not parse <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> object payloads. They read the peering header, look up the subscriber node set, and write the same payload bytes on the next sessions. The origin and subscriber relays are the points that convert between <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> and this encapsulation.<a href="#section-9-1" class="pilcrow">¶</a></p>
-<p id="section-9-2">The origin relay builds one subscriber node set per egress data session. The set contains the subscriber relays whose best path uses that session. The origin then sends the objects on that session with the set identifier in the peering header.<a href="#section-9-2" class="pilcrow">¶</a></p>
-<p id="section-9-3">A Via or Edge that receives the set splits it. Node IDs that share the same next hop are placed in one egress set. The egress set is advertised on that next session with a new session-local identifier, and the node records the mapping from the ingress identifier to that egress identifier. If the node's own Node ID is in the set, the full-name hash in the object header selects the local <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> subscribers. The peering header is removed before those bytes are handed to <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>.<a href="#section-9-3" class="pilcrow">¶</a></p>
+<p id="section-9-1">Objects move from the origin relay to each subscriber relay. Intermediate Via nodes do not parse <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> object payloads. They read the fabric header, look up the subscriber node set, and write the same payload bytes on the next sessions. The origin and subscriber relays are the points that convert between <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> and this encapsulation.<a href="#section-9-1" class="pilcrow">¶</a></p>
+<p id="section-9-2">The origin relay builds one subscriber node set per egress data session. The set contains the subscriber relays whose best path uses that session. The origin then sends the objects on that session with the set identifier in the fabric header.<a href="#section-9-2" class="pilcrow">¶</a></p>
+<p id="section-9-3">A Via or Edge that receives the set splits it. Node IDs that share the same next hop are placed in one egress set. The egress set is advertised on that next session with a new session-local identifier, and the node records the mapping from the ingress identifier to that egress identifier. If the node's own Node ID is in the set, the full-name hash in the object header selects the local <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> subscribers. The fabric header is removed before those bytes are handed to <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>.<a href="#section-9-3" class="pilcrow">¶</a></p>
 <div class="alignCenter art-text artwork" id="section-9-4">
 <pre>
 Publisher
@@ -2166,8 +2166,8 @@ Subscribers                        Subscribers
 <a href="#section-9.1" class="section-number selfRef">9.1. </a><a href="#name-pipeline-forwarding" class="section-name selfRef">Pipeline Forwarding</a>
         </h3>
 <p id="section-9.1-1">Datagram objects are forwarded as whole datagrams. A datagram that does not fit the next hop is dropped. This protocol does not fragment datagrams. Publishers that need to cross a smaller maximum transmission unit send objects on streams, or send datagrams that fit the smallest hop.<a href="#section-9.1-1" class="pilcrow">¶</a></p>
-<p id="section-9.1-2">A stream is pipelined. The first bytes of a new unidirectional stream carry a peering header. Every following byte on that stream is payload and is written through without a further peering header. A relay does not reassemble the <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> object before forwarding. Reassembly is the subscriber's job, and the job of a relay that has chosen to cache. A caching relay acts as a <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> subscriber and publisher on that track.<a href="#section-9.1-2" class="pilcrow">¶</a></p>
-<p id="section-9.1-3">A new <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> group or subgroup arrives as a new QUIC stream. The relay mirrors that transition: the new stream gets a new peering header, and the previous stream ends. One active peering stream represents the current stream for that flow on a session.<a href="#section-9.1-3" class="pilcrow">¶</a></p>
+<p id="section-9.1-2">A stream is pipelined. The first bytes of a new unidirectional stream carry a fabric header. Every following byte on that stream is payload and is written through without a further fabric header. A relay does not reassemble the <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> object before forwarding. Reassembly is the subscriber's job, and the job of a relay that has chosen to cache. A caching relay acts as a <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> subscriber and publisher on that track.<a href="#section-9.1-2" class="pilcrow">¶</a></p>
+<p id="section-9.1-3">A new <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> group or subgroup arrives as a new QUIC stream. The relay mirrors that transition: the new stream gets a new fabric header, and the previous stream ends. One active fabric stream represents the current stream for that flow on a session.<a href="#section-9.1-3" class="pilcrow">¶</a></p>
 <p id="section-9.1-4">The time-to-live in a new-stream header applies to the objects on that stream. The timer for an object starts when the object is received. The priority in that header is the priority of the egress QUIC stream and the priority offered to local <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> subscribers.<a href="#section-9.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -2375,7 +2375,7 @@ CONNECT Message {
 <figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
 <a href="#name-connect-2" class="selfRef">CONNECT</a>
           </figcaption></figure>
-<p id="section-10.5-3">Peer Mode is a value from the session mode table. Any other value is rejected with response code Peering Mode Not Allowed, and the acceptor then closes the connection. Token Present is 1 when a token follows and 0 when mutual TLS alone is used. Any other value is a malformed message. Token Length is a <a href="#varint" class="auto internal xref">Section 10.1</a> count of the following token octets. The token is opaque. Node Info describes the initiator and has an empty path. The token fields come before Node Info so the node path can still occupy the remainder of the message.<a href="#section-10.5-3" class="pilcrow">¶</a></p>
+<p id="section-10.5-3">Peer Mode is a value from the session mode table. Any other value is rejected with response code Fabric Mode Not Allowed, and the acceptor then closes the connection. Token Present is 1 when a token follows and 0 when mutual TLS alone is used. Any other value is a malformed message. Token Length is a <a href="#varint" class="auto internal xref">Section 10.1</a> count of the following token octets. The token is opaque. Node Info describes the initiator and has an empty path. The token fields come before Node Info so the node path can still occupy the remainder of the message.<a href="#section-10.5-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="connectresponse">
@@ -2428,7 +2428,7 @@ CONNECT_RESPONSE Message {
             </tr>
             <tr>
               <td class="text-right" rowspan="1" colspan="1">3</td>
-              <td class="text-left" rowspan="1" colspan="1">Peering Mode Not Allowed</td>
+              <td class="text-left" rowspan="1" colspan="1">Fabric Mode Not Allowed</td>
               <td class="text-left" rowspan="1" colspan="1">The requested session mode is not allowed.</td>
             </tr>
           </tbody>
@@ -2698,7 +2698,7 @@ NEW_STREAM {
           <h4 id="name-existing-stream-bytes">
 <a href="#section-10.11.3" class="section-number selfRef">10.11.3. </a><a href="#name-existing-stream-bytes" class="section-name selfRef">Existing Stream Bytes</a>
           </h4>
-<p id="section-10.11.3-1">After NEW_STREAM, further payload on the same QUIC stream is sent with no peering header. The SNS ID, full-name hash, priority, and time-to-live stay those of the NEW_STREAM header that opened the stream. An implementation classifies those bytes as existing-stream data locally. It does not put Data Type 1 on the wire. A stream whose first header has a Data Type other than 2, including type 1, is reset with application error INVALID_START_OF_STREAM. A datagram whose Data Type is not 0 is discarded.<a href="#section-10.11.3-1" class="pilcrow">¶</a></p>
+<p id="section-10.11.3-1">After NEW_STREAM, further payload on the same QUIC stream is sent with no fabric header. The SNS ID, full-name hash, priority, and time-to-live stay those of the NEW_STREAM header that opened the stream. An implementation classifies those bytes as existing-stream data locally. It does not put Data Type 1 on the wire. A stream whose first header has a Data Type other than 2, including type 1, is reset with application error INVALID_START_OF_STREAM. A datagram whose Data Type is not 0 is discarded.<a href="#section-10.11.3-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -2812,12 +2812,12 @@ NEW_STREAM {
       <h2 id="name-security-considerations">
 <a href="#section-13" class="section-number selfRef">13. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
-<p id="section-13-1">Mutual TLS, as specified in <a href="#authentication" class="auto internal xref">Section 7.2</a>, authenticates every peering session. An <span class="bcp14">OPTIONAL</span> token in CONNECT provides additional authentication and authorization. A node that skips verification of the peer certificate accepts a session from any endpoint that completes the handshake and can then inject node, announce, and subscribe state. Implementations <span class="bcp14">MUST</span> authenticate the peer before CONNECT. A token is a credential. Implementations <span class="bcp14">MUST NOT</span> log it, and they <span class="bcp14">MUST</span> treat a missing or rejected token as Not Authorized when local policy requires one.<a href="#section-13-1" class="pilcrow">¶</a></p>
+<p id="section-13-1">Mutual TLS, as specified in <a href="#authentication" class="auto internal xref">Section 7.2</a>, authenticates every fabric session. An <span class="bcp14">OPTIONAL</span> token in CONNECT provides additional authentication and authorization. A node that skips verification of the peer certificate accepts a session from any endpoint that completes the handshake and can then inject node, announce, and subscribe state. Implementations <span class="bcp14">MUST</span> authenticate the peer before CONNECT. A token is a credential. Implementations <span class="bcp14">MUST NOT</span> log it, and they <span class="bcp14">MUST</span> treat a missing or rejected token as Not Authorized when local policy requires one.<a href="#section-13-1" class="pilcrow">¶</a></p>
 <p id="section-13-2">The certificate checks in <a href="#authentication" class="auto internal xref">Section 7.2</a> exclude expired credentials, weak public keys, and MD5 or SHA-1 signatures. Trust anchors and any explicitly trusted self-signed certificates are deployment configuration. A self-signed certificate used beyond a closed domain will not be accepted by a peer that requires a chain to a known anchor.<a href="#section-13-2" class="pilcrow">¶</a></p>
 <p id="section-13-3">The authenticated identity is bound to the Node ID in CONNECT. Without that binding, a peer that holds a valid certificate could advertise a Node ID it does not own and attract object flows. Policy at the acceptor enforces the binding and returns Not Authorized when it fails.<a href="#section-13-3" class="pilcrow">¶</a></p>
-<p id="section-13-4">The name hashes in <a href="#names" class="auto internal xref">Section 6</a> are 64-bit CityHash64 forwarding keys. A collision merges two names into one peering track, so objects for one name can be delivered on the subscribe state of the other. A peer that is allowed to choose track names can attempt that collision. The hash check on a subscribe or an announce accepts the message when the hash field matches the octets in that same message. A second name that hashes to a key already in use joins that same track.<a href="#section-13-4" class="pilcrow">¶</a></p>
+<p id="section-13-4">The name hashes in <a href="#names" class="auto internal xref">Section 6</a> are 64-bit CityHash64 forwarding keys. A collision merges two names into one fabric track, so objects for one name can be delivered on the subscribe state of the other. A peer that is allowed to choose track names can attempt that collision. The hash check on a subscribe or an announce accepts the message when the hash field matches the octets in that same message. A second name that hashes to a key already in use joins that same track.<a href="#section-13-4" class="pilcrow">¶</a></p>
 <p id="section-13-5">Control peering distributes the names of tracks and the identities of the relays that publish or subscribe. Filtering announce and subscribe advertisements is the mechanism that keeps a track inside a region or a customer boundary. A missing filter is a data leak, because an origin relay that learns a subscribe will forward objects toward that subscriber relay.<a href="#section-13-5" class="pilcrow">¶</a></p>
-<p id="section-13-6">Object payloads are opaque to intermediate relays and are protected by the QUIC session on each hop. This protocol does not add a second encryption layer. End-to-end confidentiality and integrity of <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> objects are the responsibility of the application and of <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>, not of the peering encapsulation. Each hop can read the payload bytes it forwards.<a href="#section-13-6" class="pilcrow">¶</a></p>
+<p id="section-13-6">Object payloads are opaque to intermediate relays and are protected by the QUIC session on each hop. This protocol does not add a second encryption layer. End-to-end confidentiality and integrity of <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span> objects are the responsibility of the application and of <span>[<a href="#MOQT" class="cite xref">MOQT</a>]</span>, not of the fabric encapsulation. Each hop can read the payload bytes it forwards.<a href="#section-13-6" class="pilcrow">¶</a></p>
 <p id="section-13-7">The subscriber node set tells a data peer which Edge nodes receive a flow. That is visible to every hop on the data path. Deployments that treat the set of receivers as sensitive keep data sessions inside the same trust domain that already carries the objects.<a href="#section-13-7" class="pilcrow">¶</a></p>
 <p id="section-13-8">An implementation <span class="bcp14">MUST</span> bound the memory used for information bases, for subscriber node sets, and for objects that arrive before their set advertisement. An unbounded buffer is a denial-of-service vector.<a href="#section-13-8" class="pilcrow">¶</a></p>
 </section>
@@ -2847,9 +2847,9 @@ NEW_STREAM {
           </thead>
           <tbody>
             <tr>
-              <td class="text-left" rowspan="1" colspan="1">Media over QUIC Relay Peering</td>
+              <td class="text-left" rowspan="1" colspan="1">Media over QUIC Relay Fabric Protocol</td>
               <td class="text-left" rowspan="1" colspan="1">
-                <code>moq-peering</code>
+                <code>moq-fabric</code>
 </td>
               <td class="text-left" rowspan="1" colspan="1">This document</td>
             </tr>
@@ -2857,12 +2857,12 @@ NEW_STREAM {
         </table>
 </section>
 </div>
-<div id="peering-registries">
+<div id="fabric-registries">
 <section id="section-14.2">
-        <h3 id="name-peering-registries">
-<a href="#section-14.2" class="section-number selfRef">14.2. </a><a href="#name-peering-registries" class="section-name selfRef">Peering Registries</a>
+        <h3 id="name-fabric-registries">
+<a href="#section-14.2" class="section-number selfRef">14.2. </a><a href="#name-fabric-registries" class="section-name selfRef">Fabric Registries</a>
         </h3>
-<p id="section-14.2-1">IANA is requested to create a "MOQ Relay Peering" registry group containing the registries below. New registrations in each registry use the Specification Required policy <span>[<a href="#RFC8126" class="cite xref">RFC8126</a>]</span>.<a href="#section-14.2-1" class="pilcrow">¶</a></p>
+<p id="section-14.2-1">IANA is requested to create a "MOQ Relay Fabric" registry group containing the registries below. New registrations in each registry use the Specification Required policy <span>[<a href="#RFC8126" class="cite xref">RFC8126</a>]</span>.<a href="#section-14.2-1" class="pilcrow">¶</a></p>
 <div id="iana-message-types">
 <section id="section-14.2.1">
           <h4 id="name-message-type-registry">
@@ -2953,7 +2953,7 @@ NEW_STREAM {
       <h2 id="name-acknowledgments">
 <a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
       </h2>
-<p id="appendix-A-1">The peering design reflected here was developed alongside the moq-peering relay library.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-1">The fabric design reflected here was developed alongside the moq-fabric relay library.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="authors-addresses">

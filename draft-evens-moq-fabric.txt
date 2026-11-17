@@ -4,34 +4,34 @@
 
 Media Over QUIC                                                 T. Evens
 Internet-Draft                                                     Cisco
-Intended status: Standards Track                         4 November 2026
-Expires: 8 May 2027
+Intended status: Standards Track                        16 November 2026
+Expires: 20 May 2027
 
 
-                 Media over QUIC Relay Peering Protocol
-                     draft-evens-moq-peering-latest
+                 Media over QUIC Relay Fabric Protocol
+                     draft-evens-moq-fabric-latest
 
 Abstract
 
-   This document defines the relay peering protocol used by Media over
-   QUIC ([MOQT]) relays to exchange node, announce, and subscribe
-   information and to forward objects between relays.  Peering is split
-   into control peering and data peering.  Control peering stays
-   established and carries the information bases.  Data peering carries
-   objects and MAY be pre-established or opened on demand.  The two
-   functions MAY share one QUIC session or use separate sessions.  A
-   peering session uses mutual TLS, together with an OPTIONAL token for
-   authentication and authorization, before the peers exchange peering
-   state.
+   This document defines moq-fabric, the relay fabric protocol used by
+   Media over QUIC ([MOQT]) relays to exchange node, announce, and
+   subscribe information and to forward objects between relays.  The
+   fabric is split into control peering and data peering.  Control
+   peering stays established and carries the information bases.  Data
+   peering carries objects and MAY be pre-established or opened on
+   demand.  The two functions MAY share one QUIC session or use separate
+   sessions.  A fabric session uses mutual TLS, together with an
+   OPTIONAL token for authentication and authorization, before the peers
+   exchange fabric state.
 
 About This Document
 
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://timevens.github.io/draft-evens-moq-peering/draft-evens-moq-
-   peering.html.  Status information for this document may be found at
-   https://datatracker.ietf.org/doc/draft-evens-moq-peering/.
+   https://timevens.github.io/draft-evens-moq-fabric/draft-evens-moq-
+   fabric.html.  Status information for this document may be found at
+   https://datatracker.ietf.org/doc/draft-evens-moq-fabric/.
 
    Discussion of this document takes place on the Media Over QUIC
    Working Group mailing list (mailto:moq@ietf.org), which is archived
@@ -39,7 +39,7 @@ About This Document
    https://www.ietf.org/mailman/listinfo/moq/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/TimEvens/draft-evens-moq-peering.
+   https://github.com/TimEvens/draft-evens-moq-fabric.
 
 Status of This Memo
 
@@ -56,7 +56,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 8 May 2027.
+   This Internet-Draft will expire on 20 May 2027.
 
 Copyright Notice
 
@@ -83,7 +83,8 @@ Table of Contents
        3.1.3.  Stub
      3.2.  Relay Roles
      3.3.  Topologies
-   4.  Peering Sessions
+     3.4.  End-to-End Example
+   4.  Fabric Sessions
      4.1.  Control Peering
      4.2.  Data Peering
      4.3.  Same Session or Separate Sessions
@@ -107,6 +108,7 @@ Table of Contents
    9.  Data Forwarding
      9.1.  Pipeline Forwarding
      9.2.  Opening a Flow
+     9.3.  Path Changes and Stopped Flows
    10. Message Encoding
      10.1.  Variable-Length Integers
      10.2.  Common Header
@@ -129,7 +131,7 @@ Table of Contents
    13. Security Considerations
    14. IANA Considerations
      14.1.  ALPN Identification
-     14.2.  Peering Registries
+     14.2.  Fabric Registries
        14.2.1.  Message Type Registry
        14.2.2.  Session Modes
        14.2.3.  Node Type Registry
@@ -149,13 +151,13 @@ Table of Contents
    state to the data path and makes traffic engineering, fan-out, and
    policy enforcement difficult.
 
-   This document specifies how relays peer.  Each relay keeps
-   information bases that describe the nodes it can reach, the tracks
-   that have been announced, and the subscribes that are active.  Relays
-   exchange those bases on control peering.  They forward object bytes
-   on data peering, using a subscriber node set to say which subscriber
-   relays need the objects.  Each hop chooses its own next hop from the
-   node information base.
+   This document specifies moq-fabric.  Each relay keeps information
+   bases that describe the nodes it can reach, the tracks that have been
+   announced, and the subscribes that are active.  Relays exchange those
+   bases on control peering.  They forward object bytes on data peering,
+   using a subscriber node set to say which subscriber relays need the
+   objects.  Each hop chooses its own next hop from the node information
+   base.
 
    Control peering is always on for a peering relationship that
    exchanges information bases.  Data peering MAY already be up, or a
@@ -179,8 +181,8 @@ Table of Contents
    The terms Client, Server, Publisher, Subscriber, Track, Track
    Namespace, and Object are imported from [MOQT].
 
-   Node:  A relay that participates in peering.  A node has a Node ID, a
-      node type, and a contact address.
+   Node:  A relay that participates in the fabric.  A node has a Node
+      ID, a node type, and a contact address.
 
    Node ID:  An unsigned 64-bit identifier that is unique among the
       nodes that exchange information bases.
@@ -193,7 +195,7 @@ Table of Contents
       established before there is anything to send, or opened when a
       path needs it.
 
-   Peering session:  One QUIC connection between two nodes, used for
+   Fabric session:  One QUIC connection between two nodes, used for
       control peering, data peering, or both.
 
    Origin relay:  The Edge node that holds the publisher, or the Edge
@@ -214,11 +216,11 @@ Table of Contents
 3.  Overview
 
    Relays peer over [QUIC].  A session has one bidirectional stream for
-   peering control messages.  Object bytes use unidirectional streams
-   and QUIC DATAGRAM frames.  The application-layer protocol negotiation
-   (ALPN) token is the ASCII string moq-peering.
+   fabric control messages.  Object bytes use unidirectional streams and
+   QUIC DATAGRAM frames.  The application-layer protocol negotiation
+   (ALPN) token is the ASCII string moq-fabric.
 
-   Three session modes are negotiated in the first peering message:
+   Three session modes are negotiated in the first fabric message:
 
        +=======+=========+=========================================+
        | Value | Name    | What the session carries                |
@@ -232,7 +234,7 @@ Table of Contents
        |       |         | same QUIC connection.                   |
        +-------+---------+-----------------------------------------+
 
-                       Table 1: Peering session modes
+                       Table 1: Fabric session modes
 
    Control peering uses mode Control or mode Both.  Data peering uses
    mode Data or mode Both.  A data session still has the bidirectional
@@ -243,23 +245,24 @@ Table of Contents
 3.1.  Relay Types
 
    The node type is configured for the relay and is advertised with the
-   node.  A change of type requires the node to drop its peering
-   sessions and reconnect so peers learn the new type.
+   node.  A change of type requires the node to drop its fabric sessions
+   and reconnect so peers learn the new type.
 
-     +=======+======+===============================================+
-     | Value | Name | Behavior                                      |
-     +=======+======+===============================================+
-     | 0     | Via  | Forwards between relays.  Does not accept     |
-     |       |      | [MOQT] clients.                               |
-     +-------+------+-----------------------------------------------+
-     | 1     | Edge | Accepts [MOQT] clients and peers with Via,    |
-     |       |      | Edge, and Stub nodes.                         |
-     +-------+------+-----------------------------------------------+
-     | 2     | Stub | Accepts local clients, dials one or more Edge |
-     |       |      | parents, and does not accept inbound peering. |
-     +-------+------+-----------------------------------------------+
+           +=======+======+====================================+
+           | Value | Name | Behavior                           |
+           +=======+======+====================================+
+           | 0     | Via  | Forwards between relays.  Does not |
+           |       |      | accept [MOQT] clients.             |
+           +-------+------+------------------------------------+
+           | 1     | Edge | Accepts [MOQT] clients and peers   |
+           |       |      | with Via, Edge, and Stub nodes.    |
+           +-------+------+------------------------------------+
+           | 2     | Stub | Accepts local clients, dials one   |
+           |       |      | or more Edge parents, and does not |
+           |       |      | accept inbound fabric sessions.    |
+           +-------+------+------------------------------------+
 
-                           Table 2: Node types
+                            Table 2: Node types
 
 3.1.1.  Via
 
@@ -277,7 +280,7 @@ Table of Contents
 
 3.1.2.  Edge
 
-   An Edge node accepts [MOQT] client sessions and peering sessions.  It
+   An Edge node accepts [MOQT] client sessions and fabric sessions.  It
    is the node that turns a client announce or subscribe into
    information-base state, and the node that turns received objects back
    into [MOQT] objects for local subscribers.  It computes subscriber
@@ -294,12 +297,12 @@ Table of Contents
    dials those parents, uses session mode Both, and sends objects in
    both directions on the sessions it opened.  That lets a Stub sit
    behind address translation or a firewall.  A Stub does not accept
-   inbound peering and is not installed in the node information base of
-   any node other than its parents.
+   inbound fabric sessions and is not installed in the node information
+   base of any node other than its parents.
 
    The parent Edge regenerates announce and subscribe state with its own
    Node ID as the source.  Other relays see the parent, not the Stub.  A
-   Stub that has many local subscribers still produces one peering
+   Stub that has many local subscribers still produces one fabric
    subscribe for a track at the parent.  The parent is the s-relay and
    the o-relay for the rest of the network.
 
@@ -338,14 +341,48 @@ Table of Contents
    same objects toward the subscriber Edges.  Further Via hops MAY be
    added to steer the network path.  Via nodes can be added or removed
    for a track without resetting the publisher's [MOQT] session.  An
-   object stream already open on the previous hop drains there.  A new
-   stream and every datagram use the new hop.
+   object stream already open on the previous hop drains there, as
+   specified in Section 9.3.  A new stream and every datagram use the
+   new hop.
 
    Publisher --> Origin Edge --> Via --> Subscriber Edge --> Subscriber
                                    |
                                    +----> Subscriber Edge --> Subscriber
 
-4.  Peering Sessions
+3.4.  End-to-End Example
+
+   A publisher and a subscriber meet through two Edges.  A Stub, when
+   one is present, is hidden behind its parent Edge.
+
+   1.  The publisher announces at an Edge, or at a Stub.  The Edge that
+       owns the publisher originates an announce whose source Node ID is
+       that Edge.  A Stub's parent uses its own Node ID, so the rest of
+       the network does not see the Stub.  Control peering floods the
+       announce.
+
+   2.  The subscriber subscribes at an Edge, or at a Stub.  That Edge
+       originates one subscribe for the track, again under its own Node
+       ID.  Many local clients, including clients of a Stub, collapse to
+       that one subscribe.  Control peering carries it toward the origin
+       Edge.
+
+   3.  The origin Edge matches the subscribe to the announce by the
+       namespace and the full-name hash.  It selects a data session
+       toward the subscriber Edge.  The session may be direct or may
+       pass through one or more Via nodes.
+
+   4.  The origin creates a subscriber node set on that data session.
+       The set lists the subscriber Edge.  Each hop that receives the
+       set chooses its own next data session and advertises the subset
+       of Node IDs that use that session.
+
+   5.  Objects follow those data sessions.  The header names the set
+       identifier and the full-name hash.  The subscriber Edge removes
+       the fabric header and delivers the objects to its local
+       subscriber, or to the Stub on the combined session the Stub
+       opened.
+
+4.  Fabric Sessions
 
 4.1.  Control Peering
 
@@ -370,12 +407,21 @@ Table of Contents
 
    The initiator of a session opens one bidirectional QUIC stream and
    sends every control message on it.  CONNECT is the first message.
-   The acceptor latches onto that stream and sends CONNECT_RESPONSE and
-   later control messages on it.  The initiator MAY open a replacement
-   bidirectional stream.  The acceptor adopts the new stream when a
-   control message arrives on it and resets the previous control stream
-   if that stream is still open.  Two control streams are not in use at
-   once.
+   The acceptor does not open a bidirectional stream.  It latches onto
+   the initiator's stream and sends CONNECT_RESPONSE and later control
+   messages on it.
+
+   The initiator MAY open a replacement bidirectional stream.  The
+   acceptor keeps using the current control stream until a complete,
+   well-formed control message arrives on the new stream.  That message
+   adopts the new stream as the control stream.  The acceptor then
+   resets the previous control stream with application error
+   SWITCH_NEW_STREAM when that stream is still open.  A new stream whose
+   first complete message is malformed is reset, and the current control
+   stream stays in use.  Two control streams are not in use at once.  A
+   bidirectional stream that arrives at the initiator, which did not
+   open it, is reset.  The initiator continues to use the stream it
+   opened.
 
 4.2.  Data Peering
 
@@ -531,8 +577,7 @@ Table of Contents
    the same Node ID on different sessions, path selection keeps the
    better candidate.  Operators assign the identifier.  A deployment
    that hashes a host name or a device identifier to fill the 64-bit
-   value MUST ensure the result does not collide inside the peering
-   domain.
+   value MUST ensure the result does not collide inside the fabric.
 
    The textual form is <high>:<low>.  The colon is REQUIRED.  Each side
    is an unsigned 32-bit integer in decimal, or two unsigned 16-bit
@@ -572,9 +617,11 @@ Table of Contents
       values.  Policy use of these values is deployment-specific.
 
    Metric:  An unsigned 64-bit cost.  Lower sums are preferred.  The
-      default is 100.  A peering session that is configured with a
-      higher cost advertises that higher cost in place of the node
-      metric on that session only.
+      default node metric is 100.  Let M be the node metric and S the
+      metric configured for one fabric session.  The cost advertised on
+      that session, in a self-advertisement and in a path item this node
+      appends, is max(M, S).  A session metric lower than or equal to M
+      leaves the advertised cost equal to M.
 
    Path:  The ordered list of hops that forwarded this advertisement.
       Empty when the node advertises itself.
@@ -618,16 +665,18 @@ Table of Contents
    owns the publisher.  A Stub's parent uses its own Node ID.
 
    An entry is either a single track or a namespace that covers many
-   tracks.  Namespace entries omit the track name.  Receivers index
-   entries by the full-name hash and by successive namespace-tuple
-   hashes so a later subscribe can find a matching announce.
+   tracks.  Both kinds carry the namespace tuples.  A namespace entry
+   has an empty track name.  Receivers index entries by the full-name
+   hash and by successive namespace-tuple hashes so a later subscribe
+   can find a matching announce.  The full-name hash is checked against
+   those octets as defined in Section 10.9.
 
    Announce state is flooded on control peering, subject to policy.  A
    relay MAY drop an announcement on input or on output.  A subscriber
    relay uses the entries it keeps to answer a [MOQT] subscriber and to
    learn publisher parameters that were conveyed by the local [MOQT]
-   stack.  Relays that only forward peering messages use the hash and
-   the source Node ID.
+   stack.  Relays that only forward fabric messages use the hash and the
+   source Node ID.
 
    A withdrawal is sent when the publisher unannounces.  The withdrawal
    is propagated on control peering the same way as the advertisement.
@@ -640,18 +689,130 @@ Table of Contents
    subscriber relay originates an entry when it accepts a [MOQT]
    subscribe, or when its Stub child sends one.  The source Node ID is
    that Edge.  One entry represents the subscriber relay, not each local
-   client.  Many clients on one Edge collapse to one peering subscribe
-   per track.
+   client.  Many clients on one Edge collapse to one fabric subscribe
+   per track.  Different subscribe parameters do not create another
+   entry.  A later update replaces the parameters of that same entry.
 
-   Each advertisement and withdrawal from the source node carries a
-   16-bit sequence number.  The source node increments it by one for
-   that subscribe, wrapping from 65535 to 0.  Intermediate nodes forward
-   the sequence unchanged.  A received sequence is newer when the
-   unsigned 16-bit distance (received - stored) mod 65536 is in the
-   range 1 through 32767.  An equal sequence, and a distance of 32768
-   through 65535, is not newer and MUST be ignored.  This keeps a
-   withdrawal and a following advertisement ordered when propagation
-   reorders them.
+   Each advertisement and withdrawal of an entry carries a 16-bit epoch
+   and a 16-bit sequence number.  The epoch names the counter.  The
+   sequence number orders updates of that same counter and is used only
+   to detect a delayed update.  Neither value is part of the entry
+   identity.  The entry identity is the source Node ID and the track.
+   The source increments the sequence number by one for each update of
+   that entry, wrapping from 65535 to 0, and leaves the epoch unchanged.
+   That wrap is a continuation.  A reset is not a wrap.  The source
+   increments the epoch by one, wrapping from 65535 to 0, and starts the
+   sequence at 0.  Intermediate nodes forward the epoch and the sequence
+   unchanged.
+
+   A receiver stores the epoch and the greatest sequence number it has
+   accepted in that epoch for that source and track.  Withdrawing the
+   entry removes the subscribe and updates the forwarding information
+   base, and the receiver keeps that epoch and sequence number while the
+   source is still reachable.  Sequence numbers are compared only when
+   the epochs are equal.  A later advertisement or withdrawal in the
+   same epoch is accepted only when its sequence number is greater,
+   except for the equal advertisement described below.  When a message
+   in the same epoch arrives with a lower sequence number, that message
+   is a delayed update and MUST be ignored, because a greater sequence
+   number was already received.  An equal sequence number in the same
+   epoch MUST be ignored while the entry is present, and MUST be ignored
+   after the receiver has accepted a withdrawal for that sequence.  This
+   stops a delayed advertisement from restoring a subscribe that was
+   withdrawn.  An equal advertisement in the same epoch MUST be accepted
+   when the entry was removed because the source became unreachable and
+   the receiver has not accepted a withdrawal at that sequence.  That
+   advertisement resumes the same subscribe.  The comparison uses the
+   unsigned distance (received - stored) mod 65536.  A distance of 1
+   through 32767 means the received sequence is greater, so after the
+   counter wraps inside the same epoch, 0 is greater than 65535.  A
+   distance of 32768 through 65535 means the received sequence is lower.
+   A distance of 0 means the sequences are equal.
+
+   A different epoch is a different counter.  The receiver MUST NOT
+   compare its sequence number with the retained sequence.  Epoch 1
+   sequence 0 is not a continuation of epoch 0 sequence 65535, even
+   though the sequence distance from 65535 to 0 is 1.  While the
+   receiver retains an epoch, an advertisement or withdrawal with any
+   other epoch MUST be ignored and MUST NOT cancel the retention
+   interval.  When the receiver holds no epoch for that source and
+   track, the message is a new baseline and both values are stored.
+
+   When a receiver removes a source Node ID from its node information
+   base and no remaining session reaches that source, the receiver
+   starts a retention interval for the epoch and sequence numbers of
+   that source.  The interval is 30 seconds and is not negotiated.  The
+   receiver counts those 30 seconds from the moment it removes the
+   source.  Receivers do not share a clock.  A receiver that removes the
+   source later starts its interval later, and its interval can still be
+   running after another receiver has discarded the same sequences.  A
+   withdrawal that leaves the source reachable through another session
+   MUST NOT start an interval and MUST NOT discard the sequences.  If
+   that withdrawal never makes the source unreachable, because a newer
+   node advertisement has already installed another session, no interval
+   starts from it.
+
+   While an interval runs, the retained epoch and sequences stay in
+   force.  The source becoming reachable again does not cancel the
+   interval and does not move its deadline earlier or later.  A greater
+   sequence number in the same epoch means the source continued its
+   counter, including a wrap from 65535 to 0.  The receiver MUST cancel
+   the interval and keep that sequence.  A different epoch does not.  If
+   the interval is not cancelled, the receiver MUST discard the retained
+   epoch and sequences when it ends.  The next advertisement for that
+   source is then a new baseline, and its epoch and sequence number are
+   stored even when the counter has started over.
+
+   A source that still has the last epoch and sequence number it sent
+   MUST continue from those values as soon as it returns.  It MUST NOT
+   wait, it MUST NOT change the epoch, and it MUST NOT start the
+   sequence over.  The age of the saved values does not matter.  A
+   continuation uses the same epoch, so a receiver accepts it whether or
+   not that receiver's interval has ended.
+
+   A source that does not have the last epoch and sequence number it
+   sent has reset the counter.  It increments the epoch and starts the
+   sequence at 0.  It counts its wait from the moment it restarts.
+   Restart is the moment the source is ready to open fabric sessions,
+   not the moment any receiver removes it.  There is no bound on how
+   late a node withdrawal can arrive.  A receiver can remove the source
+   after the restart, and its retention interval can still be running
+   after any fixed pair of baselines.  If those baselines arrived while
+   the old sequence was retained, they were ignored, and nothing remains
+   to be delivered when the interval ends.  The source therefore MUST
+   NOT stop after a scheduled number of transmissions.
+
+   The source MUST NOT send a subscribe advertisement or a subscribe
+   withdrawal until 30 seconds after that restart.  It MAY send node
+   advertisements during the wait, so receivers can observe that it is
+   back.  When the wait ends, the source MUST send the current subscribe
+   state of each entry it still holds.  It MUST send that current state
+   again at least once every 30 seconds for as long as the entry exists.
+   Each of those sends is an update in the new epoch: the source
+   increments the sequence number by one even when the parameters are
+   unchanged, and it does not increment the epoch again.  An equal
+   retransmission would be ignored by a peer that already has the entry,
+   and that peer would not forward it.  A later receiver that had
+   discarded the old sequence would then see nothing.  When the source
+   withdraws the entry, it stops this repetition and sends the
+   withdrawal with the next sequence number in that epoch.
+
+   A receiver that still retains the old epoch MUST ignore these
+   updates, whatever their sequence numbers are, and MUST NOT forward
+   them.  The modular sequence test does not apply across epochs, so a
+   reset sequence of 0 does not become acceptable merely because the
+   retained sequence is 65535.  When that receiver's own interval ends
+   it discards the retained epoch and sequences, however long after the
+   restart that is.  It then has no stored epoch.  The next of these
+   updates is a new baseline, and the receiver MUST forward it.  A
+   receiver that has already accepted the new counter MUST accept the
+   following update, because its sequence number is greater, and MUST
+   forward it.  The repetition runs until the entry is withdrawn, so a
+   removal that happens long after the restart is still followed by an
+   update the receiver can accept.  A source that has never sent a
+   subscribe sequence is not resetting a counter.  It starts at epoch 0
+   and MAY send the first advertisement immediately, and it does not
+   repeat that advertisement on this timer.
 
    The entry carries the track hashes, the subscribe parameters, and the
    namespace and track-name octets.  The octets let the origin relay
@@ -674,15 +835,16 @@ Table of Contents
    toward the source node of the subscribe.
 
    A withdrawal removes the entry and updates the forwarding information
-   base.  The source node sends the withdrawal when its local
-   subscribers for that track are gone.
+   base.  The receiver keeps the epoch and sequence number for the
+   retention rules in Section 5.3.  The source node sends the withdrawal
+   when its local subscribers for that track are gone.
 
 5.4.  Forwarding Information Base
 
    The forwarding information base is local.  It is not encoded as an
    information-base message.
 
-   For each remote Node ID the node keeps the peering session that path
+   For each remote Node ID the node keeps the fabric session that path
    selection chose.  For each object flow the node keeps the mapping
    from an ingress subscriber-node-set identifier to the egress session
    and the egress identifier.  A local subscriber is represented by a
@@ -693,7 +855,8 @@ Table of Contents
    session, when a subscribe is added or removed, and when a subscriber
    node set arrives.  An object stream that is already open keeps its
    previous egress until that stream ends.  A new stream, and every
-   datagram, uses the session currently in the table.
+   datagram, uses the session currently in the table.  Section 9.3
+   states when forwarding stops.
 
 5.5.  Subscriber Node Set
 
@@ -734,10 +897,31 @@ Table of Contents
    The hash function is CityHash64 [CITYHASH] over the octet string.  An
    empty string hashes as CityHash64 of zero octets.
 
-   The namespace hash is CityHash64 of the concatenation of the tuple
-   octets, with no separator between tuples.  The name hash is
-   CityHash64 of the track-name octets.  The full-name hash combines
-   those two values, starting from zero:
+   The namespace hash is computed one tuple at a time, in tuple order.
+   An empty namespace hashes as CityHash64 of zero octets.  The hash of
+   the first tuple is CityHash64 of that tuple's octets, so a namespace
+   of one tuple has the same hash as that tuple.  Each following tuple
+   updates the hash.  The previous hash is encoded as 8 octets in
+   network byte order and placed before the next tuple's octets, and
+   CityHash64 of that sequence replaces the hash:
+
+ namespace_hash(tuples):
+     if tuples is empty:
+         return CityHash64 of zero octets
+     h = CityHash64 of the first tuple
+     for each following tuple:
+         h = CityHash64 of (h as 8 octets, most significant octet first,
+                            followed by the tuple octets)
+     return h
+
+                        Figure 1: Namespace hash
+
+   Each tuple stays on its own boundary.  The hash of ("a", "bc")
+   differs from the hash of ("ab", "c"), and the hash of ("a", "b")
+   differs from the hash of ("b", "a").
+
+   The name hash is CityHash64 of the track-name octets.  The full-name
+   hash combines those two values, starting from zero:
 
    hash_combine(seed, value):
        seed = seed XOR (value + 0x9e3779b9 + (seed << 6) + (value >> 2))
@@ -747,12 +931,27 @@ Table of Contents
    hash_combine(full_name_hash, namespace_hash)
    hash_combine(full_name_hash, name_hash)
 
-                          Figure 1: Full-name hash
+                          Figure 2: Full-name hash
 
-   Prefix matching uses the CityHash64 of each tuple, compared in order.
-   A namespace A is a prefix of namespace B when A has no more tuples
-   than B and each tuple hash of A equals the tuple hash of B at the
-   same index.
+   Prefix matching compares the CityHash64 of each tuple by itself, in
+   order.  The chained namespace hash is the namespace input to the
+   full-name hash.  A namespace A is a prefix of namespace B when A has
+   no more tuples than B and each tuple hash of A equals the tuple hash
+   of B at the same index.
+
+   CityHash64 has a 64-bit output, so distinct names can share a hash.
+   Recomputing a hash from the octets in the same message and comparing
+   it with the hash field detects a malformed message.  Two different
+   names that produce one hash stay one forwarding key.
+
+   The forwarding identity of a track is its full-name hash.  Announce
+   entries, subscribe entries, and object delivery match on that hash.
+   Prefix matching matches on tuple hashes.  Two different octet strings
+   with the same hash are the same key.  A node MUST keep one entry for
+   that hash and MUST handle the announces, subscribes, and objects
+   under it as one track.  The name octets travel with announce and
+   subscribe messages so an endpoint can rebuild the [MOQT] name.
+   Forwarding does not use those octets as a second identity.
 
 7.  Connection Establishment
 
@@ -760,7 +959,7 @@ Table of Contents
 
    The connection uses [QUIC] with the TLS handshake specified by
    [QUIC-TLS].  Implementations MUST NOT negotiate a TLS version older
-   than TLS 1.3 [TLS].  The ALPN token MUST be moq-peering.
+   than TLS 1.3 [TLS].  The ALPN token MUST be moq-fabric.
 
    Either node MAY open the connection.  The node that opens it is the
    initiator and sends CONNECT.  The node that accepts it sends
@@ -781,7 +980,7 @@ Table of Contents
    *  The initiator MUST NOT send CONNECT until the handshake has
       completed and the peer certificate has been accepted.
 
-   *  The acceptor MUST NOT send peering messages, and MUST NOT accept
+   *  The acceptor MUST NOT send fabric messages, and MUST NOT accept
       CONNECT, until it has authenticated the initiator.
 
    *  A failed mutual TLS authentication closes the QUIC connection.  No
@@ -797,7 +996,7 @@ Table of Contents
       rejected with response code Not Authorized.  The acceptor then
       closes the connection.  No information-base state is created.
 
-   Certificate material is configuration.  Peering messages do not carry
+   Certificate material is configuration.  Fabric messages do not carry
    certificates or private keys, and implementations MUST NOT embed that
    material in source.  Before use, the certificate MUST satisfy all of
    the following:
@@ -811,7 +1010,7 @@ Table of Contents
       P-256 or a stronger curve.
 
    *  The certificate chains to a trust anchor configured for this
-      peering domain, or matches a peer credential that was configured
+      fabric, or matches a peer credential that was configured
       explicitly.
 
    A self-signed certificate is suitable only where every peer is
@@ -825,7 +1024,7 @@ Table of Contents
    present, to that token.  A Node ID that the policy does not allow for
    that identity is rejected with response code Not Authorized.  A
    requested mode that the policy does not allow is rejected with
-   response code Peering Mode Not Allowed.  The token is an opaque octet
+   response code Fabric Mode Not Allowed.  The token is an opaque octet
    string.  Its format and the authority that issues it are deployment
    policy.  Implementations MUST NOT embed tokens in source.
 
@@ -869,9 +1068,14 @@ Table of Contents
    sessions.  The first of these tests that differs chooses the
    candidate:
 
-   1.  Lower selection cost.  The cost is the sum of metrics.  When the
-       next-hop session is configured with a metric greater than the
-       local node metric, the difference is added.
+   1.  Lower selection cost.  The cost is the sum of metrics carried in
+       the advertisement, plus max(0, S - M) for the session that would
+       be the next hop.  M is the selecting node's metric and S is the
+       metric configured on that next-hop session.  Each metric inside
+       the sum is the advertised cost written by the node that sent that
+       hop, the greater of that node's metric and the session metric it
+       used.  When S is lower than or equal to M, the added term is
+       zero.
 
    2.  Fewer path items.
 
@@ -895,7 +1099,7 @@ Table of Contents
 
    Objects move from the origin relay to each subscriber relay.
    Intermediate Via nodes do not parse [MOQT] object payloads.  They
-   read the peering header, look up the subscriber node set, and write
+   read the fabric header, look up the subscriber node set, and write
    the same payload bytes on the next sessions.  The origin and
    subscriber relays are the points that convert between [MOQT] and this
    encapsulation.
@@ -903,7 +1107,7 @@ Table of Contents
    The origin relay builds one subscriber node set per egress data
    session.  The set contains the subscriber relays whose best path uses
    that session.  The origin then sends the objects on that session with
-   the set identifier in the peering header.
+   the set identifier in the fabric header.
 
    A Via or Edge that receives the set splits it.  Node IDs that share
    the same next hop are placed in one egress set.  The egress set is
@@ -911,7 +1115,7 @@ Table of Contents
    and the node records the mapping from the ingress identifier to that
    egress identifier.  If the node's own Node ID is in the set, the
    full-name hash in the object header selects the local [MOQT]
-   subscribers.  The peering header is removed before those bytes are
+   subscribers.  The fabric header is removed before those bytes are
    handed to [MOQT].
 
         Publisher
@@ -938,16 +1142,16 @@ Table of Contents
    the smallest hop.
 
    A stream is pipelined.  The first bytes of a new unidirectional
-   stream carry a peering header.  Every following byte on that stream
-   is payload and is written through without a further peering header.
-   A relay does not reassemble the [MOQT] object before forwarding.
+   stream carry a fabric header.  Every following byte on that stream is
+   payload and is written through without a further fabric header.  A
+   relay does not reassemble the [MOQT] object before forwarding.
    Reassembly is the subscriber's job, and the job of a relay that has
    chosen to cache.  A caching relay acts as a [MOQT] subscriber and
    publisher on that track.
 
    A new [MOQT] group or subgroup arrives as a new QUIC stream.  The
-   relay mirrors that transition: the new stream gets a new peering
-   header, and the previous stream ends.  One active peering stream
+   relay mirrors that transition: the new stream gets a new fabric
+   header, and the previous stream ends.  One active fabric stream
    represents the current stream for that flow on a session.
 
    The time-to-live in a new-stream header applies to the objects on
@@ -972,6 +1176,43 @@ Table of Contents
    existing set, under the same identifier.  A subscribe that is the
    last one on a session withdraws the identifier.
 
+9.3.  Path Changes and Stopped Flows
+
+   An open object stream stays on the egress session that accepted it.
+   A datagram and a new stream use the session path selection has chosen
+   now.  The node does not open a replacement stream for bytes already
+   in flight.  The next [MOQT] group or subgroup is a new stream and
+   takes the new path.
+
+   Forwarding of new objects toward a subscriber stops when that
+   subscriber is removed from the set, when its subscribe is withdrawn,
+   or when the egress session is no longer the selected next hop.  If
+   that egress has no open stream for the flow, the node drops the
+   egress at once.  When the set no longer names any subscriber on that
+   session, the node withdraws the subscriber node set identifier there.
+   If the egress still has an open stream, the node marks the egress
+   draining.  Bytes that continue that stream are still written.  A
+   datagram or a new stream skips a draining egress.  When the stream
+   ends, the node drops the egress and withdraws the set identifier if
+   no subscriber remains on it.
+
+   A subscriber node set withdrawal retires that identifier.  The
+   receiver stops forwarding new objects for it, finishes the streams it
+   opened for that set, and discards objects it was holding for the
+   identifier.  An identifier that has been withdrawn, or that was never
+   advertised on the session, is stale.  The receiver MUST discard
+   objects that cite a stale identifier, and it MUST NOT create an
+   egress for one.  Objects that arrive before the first advertisement
+   of an identifier are the case in Section 5.5: they are held, and they
+   are discarded if the session ends or the identifier is withdrawn
+   first.
+
+   If the egress session fails before a draining stream ends, the stream
+   ends with the session.  The node removes that egress and every set
+   identifier learned on the session.  It does not rebuild the
+   interrupted stream.  A later new stream uses a session that path
+   selection still considers available.
+
 10.  Message Encoding
 
    Octets are sent in network byte order.  Unless a field states
@@ -980,38 +1221,19 @@ Table of Contents
    number, also big-endian.
 
    Diagrams name a field and the size in octets. varint is the variable-
-   length integer defined in this section.  A field in brackets is
+   length integer defined in Section 10.1.  A field in brackets is
    present only when the condition in the text is met.  A repeated field
    continues until the enclosing message length is exhausted, unless a
    count is given.
 
 10.1.  Variable-Length Integers
 
-   Contact lengths use a variable-length integer of one to nine octets.
-   The shortest encoding MUST be used.  Let bit_width(v) be zero when v
-   is zero, and otherwise one plus the index of the highest set bit.
-
-   *  If v is zero, the length L is 1.  Otherwise L is the minimum of 9
-      and floor((bit_width(v) + 6) / 7).
-
-   *  When L is 9, the encoding is the octet 0xFF followed by v as eight
-      octets.
-
-   *  When L is 1, the encoding is the single octet v.  Values 0 through
-      127 use this form.
-
-   *  Otherwise the encoding is L octets.  Write v into the most
-      significant L octets of a 64-bit big-endian integer, which is v
-      shifted left by (8 - L) * 8.  Then set the high (L - 1) bits of
-      the first octet by OR with the low eight bits of 0xFF << (9 - L).
-
-   A decoder reads the run of leading one bits in the first octet.
-   Eight leading ones mean a nine-octet encoding and a 64-bit value in
-   the following eight octets.  N leading ones for N from 0 through 7
-   mean a length of N + 1.  The value is the low (8 - L) bits of the
-   first octet followed by the remaining L - 1 octets.  An encoding that
-   is not the shortest form, or that sets a bit the encoder leaves
-   clear, MUST be rejected.
+   A varint MUST use the variable-length integer encoding in [MOQT],
+   Section 8.1.  The number of leading 1 bits in the first octet gives
+   the length.  An encoding is one to nine octets and represents an
+   unsigned integer of up to 64 bits.  A sender MAY use any encoding
+   length that can represent the value.  A receiver MUST accept any such
+   encoding.
 
 10.2.  Common Header
 
@@ -1024,7 +1246,7 @@ Table of Contents
      Message Length (4),
    }
 
-                          Figure 2: Common header
+                          Figure 3: Common header
 
    Protocol Version is 1.  A receiver that does not support the version
    MUST close the connection.
@@ -1075,7 +1297,9 @@ Table of Contents
 
                        Table 7: Control message types
 
-   An unknown type is a connection error.
+   Message type 0, message type 3, and any type that is not assigned in
+   the table are unknown.  An unknown type is a connection error,
+   application error INVALID_CTRL_MSG_TYPE.
 
 10.4.  Node Information
 
@@ -1102,10 +1326,16 @@ Table of Contents
      Metric (8),
    }
 
-                         Figure 3: Node information
+                         Figure 4: Node information
 
-   Node Type is a value from Section 3.1.  Contact Length is a
-   Section 10.1 count of the following octets.
+   Node Type is a value from Section 3.1.  Any other value is malformed.
+   An unknown type in CONNECT is rejected with response code Connect
+   Error, and the acceptor then closes the connection.  An unknown type
+   in CONNECT_RESPONSE makes the initiator close the connection, and no
+   information-base state is created.  An unknown type in a node
+   advertisement or withdrawal is a connection error, application error
+   INVALID_ENCODING.  Contact Length is a Section 10.1 count of the
+   following octets.
 
 10.5.  CONNECT
 
@@ -1121,15 +1351,16 @@ Table of Contents
      Node Info (..),
    }
 
-                             Figure 4: CONNECT
+                             Figure 5: CONNECT
 
-   Peer Mode is a value from the session mode table.  Token Present is 1
-   when a token follows and 0 when mutual TLS alone is used.  Any other
-   value is a malformed message.  Token Length is a Section 10.1 count
-   of the following token octets.  The token is opaque.  Node Info
-   describes the initiator and has an empty path.  The token fields come
-   before Node Info so the node path can still occupy the remainder of
-   the message.
+   Peer Mode is a value from the session mode table.  Any other value is
+   rejected with response code Fabric Mode Not Allowed, and the acceptor
+   then closes the connection.  Token Present is 1 when a token follows
+   and 0 when mutual TLS alone is used.  Any other value is a malformed
+   message.  Token Length is a Section 10.1 count of the following token
+   octets.  The token is opaque.  Node Info describes the initiator and
+   has an empty path.  The token fields come before Node Info so the
+   node path can still occupy the remainder of the message.
 
 10.6.  CONNECT_RESPONSE
 
@@ -1142,7 +1373,7 @@ Table of Contents
      [Node Info (..)],
    }
 
-                         Figure 5: CONNECT_RESPONSE
+                         Figure 6: CONNECT_RESPONSE
 
    Node Info is present only when Response Code is 0.  It describes the
    acceptor and has an empty path.
@@ -1157,7 +1388,7 @@ Table of Contents
    |    2 | Not Authorized | The authenticated identity is not        |
    |      |                | allowed.                                 |
    +------+----------------+------------------------------------------+
-   |    3 | Peering Mode   | The requested session mode is not        |
+   |    3 | Fabric Mode    | The requested session mode is not        |
    |      | Not Allowed    | allowed.                                 |
    +------+----------------+------------------------------------------+
 
@@ -1175,7 +1406,7 @@ Table of Contents
      Node Info (..),
    }
 
-                    Figure 6: Node information messages
+                    Figure 7: Node information messages
 
    The withdrawal carries the same structure so the receiver can drop
    the matching candidate, including an inferior path, rather than every
@@ -1186,6 +1417,7 @@ Table of Contents
 
    SUBSCRIBE_INFO_ADV Message {
      Common Header (type = 6),
+     Epoch (2),
      Sequence (2),
      Source Node ID (8),
      Namespace Hash (8),
@@ -1202,6 +1434,7 @@ Table of Contents
 
    SUBSCRIBE_INFO_WD Message {
      Common Header (type = 7),
+     Epoch (2),
      Sequence (2),
      Source Node ID (8),
      Namespace Hash (8),
@@ -1216,15 +1449,18 @@ Table of Contents
      Track Name (..),
    }
 
-                  Figure 7: Subscribe information messages
+                  Figure 8: Subscribe information messages
 
-   Sequence is the source node's counter for this subscribe.  Source
-   Node ID is the subscriber relay.  The three hashes are defined in
-   Section 6.  Priority is the subscriber's priority.  Delivery Timeout
-   and Expires are milliseconds.  Zero means the parameter is unset.
-   Forward is zero to pause forwarding and non-zero to forward.  New
-   Group Present is 1 when New Group Request ID follows and 0 when it
-   does not.  Any other value is a malformed message.
+   Epoch names the counter and Sequence is the delayed-update counter
+   inside that epoch, as defined in Section 5.3.  A continuation leaves
+   Epoch unchanged, including when Sequence wraps from 65535 to 0.  A
+   reset increments Epoch and starts Sequence at 0.  Source Node ID is
+   the subscriber relay.  The three hashes are defined in Section 6.
+   Priority is the subscriber's priority.  Delivery Timeout and Expires
+   are milliseconds.  Zero means the parameter is unset.  Forward is
+   zero to pause forwarding and non-zero to forward.  New Group Present
+   is 1 when New Group Request ID follows and 0 when it does not.  Any
+   other value is a malformed message.
 
    Track Name {
      Tuple Count (1),
@@ -1235,13 +1471,14 @@ Table of Contents
      Name Octets (..),
    }
 
-                            Figure 8: Track name
+                            Figure 9: Track name
 
    Tuple Count is the number of namespace tuples.  Each tuple is a
-   16-bit length and that many octets.  Name Length is a 16-bit length.
-   Zero means the name is empty.  Tuple Count and the lengths MUST fit
-   in the message.  A count or length that runs past Message Length is a
-   malformed message.
+   16-bit length and that many octets.  Name Length is a 16-bit length
+   of Name Octets.  Zero means those octets are empty.  Tuple Count and
+   the lengths MUST fit in the message.  A count or length that runs
+   past Message Length is a malformed message.  Subscribe and announce
+   messages use this same structure.
 
 10.9.  Announce Information
 
@@ -1261,12 +1498,33 @@ Table of Contents
      Flags (1),
    }
 
-                  Figure 9: Announce information messages
+                  Figure 10: Announce information messages
 
-   Source Node ID is the origin relay.  Bit 0 of Flags is 0 for a single
-   track and 1 for a namespace announcement.  A namespace announcement
-   has an empty track name.  All other flag bits MUST be sent as zero
-   and MUST be ignored on receipt.
+   Source Node ID is the origin relay.  Track Name is the structure in
+   Figure 9.  It carries the namespace tuples and the track-name octets
+   for an advertisement and for a withdrawal.  Full Name Hash is the
+   full-name hash defined in Section 6.  The message does not carry the
+   namespace hash or the name hash.  The receiver derives both from
+   Track Name.
+
+   Bit 0 of Flags selects the kind.  Zero is a single track.  One is a
+   namespace.  All other flag bits MUST be sent as zero and MUST be
+   ignored on receipt.
+
+   A track announcement uses Name Octets as the track name.  Name Length
+   MAY be zero, and the announcement is still a track.  A namespace
+   announcement covers the tracks in the namespace given by the tuples.
+   Its Name Length MUST be zero, and Name Octets MUST be empty.  A
+   namespace announcement with a non-zero Name Length is a malformed
+   message.
+
+   The receiver MUST recompute the full-name hash from Track Name and
+   MUST treat a mismatch with Full Name Hash as a malformed message.
+   The namespace hash and the name hash are the values defined in
+   Section 6.  The name hash is CityHash64 of Name Octets, which is the
+   hash of zero octets when Name Length is zero.  The same check applies
+   to a track announcement, a namespace announcement, an advertisement,
+   and a withdrawal.
 
 10.10.  Subscriber Node Set
 
@@ -1283,7 +1541,7 @@ Table of Contents
      SNS ID (4),
    }
 
-                  Figure 10: Subscriber node set messages
+                  Figure 11: Subscriber node set messages
 
    SNS ID is the session-local identifier.  Priority is the priority to
    apply to the flow.  Node Count is the number of following Node IDs.
@@ -1311,23 +1569,23 @@ Table of Contents
      ... type-specific fields ...,
    }
 
-                           Figure 11: Data header
+                           Figure 12: Data header
 
-      +======+=================+========+===========================+
-      | Type | Name            | Header | Use                       |
-      |      |                 | length |                           |
-      +======+=================+========+===========================+
-      |    0 | DATAGRAM        |     14 | One datagram object.      |
-      +------+-----------------+--------+---------------------------+
-      |    1 | EXISTING_STREAM |      0 | Not encoded.  Bytes after |
-      |      |                 |        | a new-stream header have  |
-      |      |                 |        | no peering header.        |
-      +------+-----------------+--------+---------------------------+
-      |    2 | NEW_STREAM      |     19 | First bytes of a          |
-      |      |                 |        | unidirectional stream.    |
-      +------+-----------------+--------+---------------------------+
+       +======+=================+========+========================+
+       | Type | Name            | Header | Use                    |
+       |      |                 | length |                        |
+       +======+=================+========+========================+
+       |    0 | DATAGRAM        |     14 | One datagram object.   |
+       +------+-----------------+--------+------------------------+
+       |    1 | EXISTING_STREAM |   none | Not a wire value.  A   |
+       |      |                 |        | received header with   |
+       |      |                 |        | this type is an error. |
+       +------+-----------------+--------+------------------------+
+       |    2 | NEW_STREAM      |     19 | First bytes of a       |
+       |      |                 |        | unidirectional stream. |
+       +------+-----------------+--------+------------------------+
 
-                            Table 9: Data types
+                           Table 9: Data types
 
 10.11.1.  Datagram
 
@@ -1339,7 +1597,7 @@ Table of Contents
      Payload (..),
    }
 
-                         Figure 12: Datagram object
+                         Figure 13: Datagram object
 
    The payload is the remainder of the QUIC datagram.  SNS ID selects
    the subscriber node set on this session.  Full Name Hash selects
@@ -1361,7 +1619,7 @@ Table of Contents
      Payload (..),
    }
 
-                        Figure 13: New stream header
+                        Figure 14: New stream header
 
    Priority is the QUIC priority of the egress streams created from this
    stream.  TTL Milliseconds is the object lifetime described in
@@ -1370,10 +1628,13 @@ Table of Contents
 10.11.3.  Existing Stream Bytes
 
    After NEW_STREAM, further payload on the same QUIC stream is sent
-   with no peering header.  The SNS ID, full-name hash, priority, and
+   with no fabric header.  The SNS ID, full-name hash, priority, and
    time-to-live stay those of the NEW_STREAM header that opened the
    stream.  An implementation classifies those bytes as existing-stream
-   data locally.  It does not put Data Type 1 on the wire.
+   data locally.  It does not put Data Type 1 on the wire.  A stream
+   whose first header has a Data Type other than 2, including type 1, is
+   reset with application error INVALID_START_OF_STREAM.  A datagram
+   whose Data Type is not 0 is discarded.
 
 11.  Error Handling
 
@@ -1424,7 +1685,9 @@ Table of Contents
                    Table 10: QUIC application error codes
 
    A CONNECT_RESPONSE with a non-zero response code refuses the session.
-   The acceptor closes the connection after sending it.  Response code 2
+   An unknown response code is a refusal as well.  The initiator closes
+   the connection and creates no information-base state.  The acceptor
+   closes the connection after sending a non-zero code.  Response code 2
    corresponds to a peer that completed mutual TLS and then failed token
    authentication, token authorization, or the Node ID policy.  A TLS
    failure does not produce CONNECT_RESPONSE, because CONNECT is not
@@ -1455,7 +1718,7 @@ Table of Contents
 
 13.  Security Considerations
 
-   Mutual TLS, as specified in Section 7.2, authenticates every peering
+   Mutual TLS, as specified in Section 7.2, authenticates every fabric
    session.  An OPTIONAL token in CONNECT provides additional
    authentication and authorization.  A node that skips verification of
    the peer certificate accepts a session from any endpoint that
@@ -1478,6 +1741,15 @@ Table of Contents
    at the acceptor enforces the binding and returns Not Authorized when
    it fails.
 
+   The name hashes in Section 6 are 64-bit CityHash64 forwarding keys.
+   A collision merges two names into one fabric track, so objects for
+   one name can be delivered on the subscribe state of the other.  A
+   peer that is allowed to choose track names can attempt that
+   collision.  The hash check on a subscribe or an announce accepts the
+   message when the hash field matches the octets in that same message.
+   A second name that hashes to a key already in use joins that same
+   track.
+
    Control peering distributes the names of tracks and the identities of
    the relays that publish or subscribe.  Filtering announce and
    subscribe advertisements is the mechanism that keeps a track inside a
@@ -1489,7 +1761,7 @@ Table of Contents
    by the QUIC session on each hop.  This protocol does not add a second
    encryption layer.  End-to-end confidentiality and integrity of [MOQT]
    objects are the responsibility of the application and of [MOQT], not
-   of the peering encapsulation.  Each hop can read the payload bytes it
+   of the fabric encapsulation.  Each hop can read the payload bytes it
    forwards.
 
    The subscriber node set tells a data peer which Edge nodes receive a
@@ -1509,18 +1781,18 @@ Table of Contents
    IANA is requested to add the following entry to the "TLS Application-
    Layer Protocol Negotiation (ALPN) Protocol IDs" registry:
 
-         +=================+=========================+===========+
-         | Protocol        | Identification Sequence | Reference |
-         +=================+=========================+===========+
-         | Media over QUIC | moq-peering             | This      |
-         | Relay Peering   |                         | document  |
-         +-----------------+-------------------------+-----------+
+      +=======================+=========================+===========+
+      | Protocol              | Identification Sequence | Reference |
+      +=======================+=========================+===========+
+      | Media over QUIC Relay | moq-fabric              | This      |
+      | Fabric Protocol       |                         | document  |
+      +-----------------------+-------------------------+-----------+
 
                        Table 11: ALPN identification
 
-14.2.  Peering Registries
+14.2.  Fabric Registries
 
-   IANA is requested to create a "MOQ Relay Peering" registry group
+   IANA is requested to create a "MOQ Relay Fabric" registry group
    containing the registries below.  New registrations in each registry
    use the Specification Required policy [RFC8126].
 
@@ -1593,8 +1865,8 @@ Table of Contents
 
 Appendix A.  Acknowledgments
 
-   The peering design reflected here was developed alongside the moq-
-   peering relay library.
+   The fabric design reflected here was developed alongside the moq-
+   fabric relay library.
 
 Author's Address
 
